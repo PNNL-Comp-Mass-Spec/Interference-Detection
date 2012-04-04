@@ -93,7 +93,14 @@ namespace InterDetect
             return null;
         }
 
-
+        /// <summary>
+        /// More efficient version of the getpeaklist.  
+        /// Get a peak list for this range and scan number.
+        /// </summary>
+        /// <param name="scan">scannumber</param>
+        /// <param name="low">low mz value</param>
+        /// <param name="high">high mz value</param>
+        /// <returns></returns>
         public double[,] GetPeakList2(int scan, double low, double high)
         {
 
@@ -176,7 +183,11 @@ namespace InterDetect
             }
         }
 
-
+        /// <summary>
+        /// Converts a text file to a datatable
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <returns></returns>
         public static DataTable TextFileToData(string fileName)
         {
             string line = "";

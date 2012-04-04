@@ -25,7 +25,10 @@ namespace InterDetect
         [Test]
         public void DatabaseCheck()
         {
-            DatabaseStuff(@"C:\DMS_WorkDir\Step_1_ASCORE");
+            if (!Run(@"C:\DMS_WorkDir\Step_1_ASCORE"))
+            {
+                Console.WriteLine("You Fail");
+            }
 
         }
 
@@ -34,7 +37,7 @@ namespace InterDetect
         /// to generate an interference table and adds this table to the database
         /// </summary>
         /// <param name="datapath">directory to the database, assumed that database is called Results.db3</param>
-        private void DatabaseStuff(string datapath)
+        public bool Run(string datapath)
         {
             // build Mage pipeline to read contents of 
             // a table in a SQLite database into a data buffer
@@ -63,35 +66,58 @@ namespace InterDetect
             foreach (object[] row in sink.Rows)
             {
                 filepaths.Add(row[datasetIDIdx].ToString(), Path.Combine(row[folderPathIdx].ToString(), row[datasetIdx].ToString() + raw_ext));
-
-
+            }
+            if (filepaths.Count == 0)
+            {
+                return false;
             }
             //Restart the buffer
             sink = new SimpleSink();
 
             //Add rows from other table
-            reader.SQLText = "SELECT * FROM t_decon2ls_job";
+            reader.SQLText = "SELECT * FROM t_results_metadata WHERE t_results_metadata.Tool Like 'Decon%'";
 
             // construct and run the Mage pipeline
             ProcessingPipeline.Assemble("Test_Pipeline2", reader, sink).RunRoot(null);
            
-
-            int folder = sink.ColumnIndex["Folder"];
             int datasetID = sink.ColumnIndex["Dataset_ID"];
             int dataset = sink.ColumnIndex["Dataset"];
+            int folder = sink.ColumnIndex["Folder"];
             Dictionary<string, string> isosPaths = new Dictionary<string, string>();
             //store the filepaths indexed by datasetID
             foreach (object[] row in sink.Rows)
             {
-                isosPaths.Add(row[datasetID].ToString(),Path.Combine(row[folder].ToString(), row[dataset].ToString() + isos_ext));
+                string tempIsosFolder = row[folder].ToString();
+                if (Directory.Exists(tempIsosFolder))
+                {
+                    string[] isosFileCandidate = Directory.GetFiles(tempIsosFolder);
+                    if (isosFileCandidate.Length != 0 && File.Exists(isosFileCandidate[0]))
+                    {
+                        isosPaths.Add(row[datasetID].ToString(), Path.Combine(row[folder].ToString(), row[dataset].ToString() + isos_ext));
+                    }
+
+                }
+            }
+            if (isosPaths.Count != filepaths.Count)
+            {
+                return false;
             }
 
-
             //Calculate the needed info and generate a temporary file, keep adding each dataset to this file
+            string tempPrecFile = Path.Combine(datapath, "prec_info_temp.txt");
             foreach (string files in filepaths.Keys)
             {
+                if (!isosPaths.ContainsKey(files))
+                {
+                    if (File.Exists(tempPrecFile))
+                    {
+                        File.Delete(tempPrecFile);
+                        return false;
+                    }
+                }
                 List<PrecursorInfo> myInfo = ParentInfoPass(filepaths[files], isosPaths[files]);
                 PrintInterference(myInfo, files, Path.Combine(datapath, "prec_info_temp.txt"));
+                Console.WriteLine("Iteration Complete");
             }
 
             //Create a delimeted file reader and write a new table with this info to database
@@ -109,6 +135,7 @@ namespace InterDetect
             //cleanup
             File.Delete(Path.Combine(datapath, tempfile));
 
+            return true;
 
         }
 

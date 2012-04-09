@@ -10,3 +10,15 @@ C:\AldrichBackup\aldr699\My Documents\Visual Studio 2010\Projects\Jan2012\Adjust
 C:\AldrichBackup\aldr699\My Documents\Visual Studio 2010\Projects\Jan2012\AdjustedCoverageSummarizer\InterDetect\InterDetect\obj\Release\ResolveAssemblyReference.cache
 C:\AldrichBackup\aldr699\My Documents\Visual Studio 2010\Projects\Jan2012\AdjustedCoverageSummarizer\InterDetect\InterDetect\obj\Release\InterDetect.dll
 C:\AldrichBackup\aldr699\My Documents\Visual Studio 2010\Projects\Jan2012\AdjustedCoverageSummarizer\InterDetect\InterDetect\obj\Release\InterDetect.pdb
+C:\Users\aldr699\Documents\Visual Studio 2010\Projects\InterDetect\InterDetect\bin\Release\InterDetect.dll
+C:\Users\aldr699\Documents\Visual Studio 2010\Projects\InterDetect\InterDetect\bin\Release\InterDetect.pdb
+C:\Users\aldr699\Documents\Visual Studio 2010\Projects\InterDetect\InterDetect\bin\Release\Mage.dll
+C:\Users\aldr699\Documents\Visual Studio 2010\Projects\InterDetect\InterDetect\bin\Release\nunit.framework.dll
+C:\Users\aldr699\Documents\Visual Studio 2010\Projects\InterDetect\InterDetect\bin\Release\System.Data.SQLite.dll
+C:\Users\aldr699\Documents\Visual Studio 2010\Projects\InterDetect\InterDetect\bin\Release\ThermoRawFileReaderDLL.dll
+C:\Users\aldr699\Documents\Visual Studio 2010\Projects\InterDetect\InterDetect\bin\Release\log4net.dll
+C:\Users\aldr699\Documents\Visual Studio 2010\Projects\InterDetect\InterDetect\bin\Release\Interop.XRAWFILE2Lib.dll
+C:\Users\aldr699\Documents\Visual Studio 2010\Projects\InterDetect\InterDetect\bin\Release\nunit.framework.xml
+C:\Users\aldr699\Documents\Visual Studio 2010\Projects\InterDetect\InterDetect\obj\Release\ResolveAssemblyReference.cache
+C:\Users\aldr699\Documents\Visual Studio 2010\Projects\InterDetect\InterDetect\obj\Release\InterDetect.dll
+C:\Users\aldr699\Documents\Visual Studio 2010\Projects\InterDetect\InterDetect\obj\Release\InterDetect.pdb

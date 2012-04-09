@@ -8,12 +8,16 @@ using System.IO;
 using Mage;
 using System.Data.SQLite;
 using ThermoRawFileReaderDLL;
+using log4net;
 
 
 namespace InterDetect
 {
 
-
+    public struct Peak{
+        public double mz;
+        public double abundance;
+    };
 
 	public class InterferenceDetector
 	{
@@ -116,7 +120,16 @@ namespace InterDetect
                     }
                 }
                 List<PrecursorInfo> myInfo = ParentInfoPass(filepaths[files], isosPaths[files]);
-                PrintInterference(myInfo, files, Path.Combine(datapath, "prec_info_temp.txt"));
+                if (myInfo == null)
+                {
+                    Console.WriteLine(filepaths[files] + " failed to load.  Deleting temp and aborting!");
+                    if (File.Exists(tempPrecFile))
+                    {
+                        File.Delete(tempPrecFile);
+                    }
+                    return false;
+                }
+                PrintInterference(myInfo, files, tempPrecFile);
                 Console.WriteLine("Iteration Complete");
             }
 
@@ -151,6 +164,30 @@ namespace InterDetect
 
         }
 
+
+        [Test]
+        public void TestSisiData()
+        {
+            string[] decon = new string[] {@"\\proto-9\VOrbiETD02\2012_2\Sample_4065_iTRAQ\DLS201204031741_Auto822622\Sample_4065_iTRAQ_isos.csv", 
+            @"\\proto-9\VOrbiETD02\2012_2\Sample_5065_iTRAQ\DLS201204031733_Auto822617\Sample_5065_iTRAQ_isos.csv",
+            @"\\proto-9\VOrbiETD02\2012_2\Sample_4050_iTRAQ_120330102958\DLS201204031744_Auto822624\Sample_4050_iTRAQ_120330102958_isos.csv"};
+            string[] rawfiles = new string[] {@"\\proto-9\VOrbiETD02\2012_2\Sample_4065_iTRAQ\Sample_4065_iTRAQ.raw", 
+            @"\\proto-9\VOrbiETD02\2012_2\Sample_5065_iTRAQ\Sample_5065_iTRAQ.raw",
+            @"\\proto-9\VOrbiETD02\2012_2\Sample_4050_iTRAQ_120330102958\Sample_4050_iTRAQ_120330102958.raw"};
+
+            for (int i = 0; i < 3; i++)
+            {
+                
+                List<PrecursorInfo> myInfo = ParentInfoPass(rawfiles[i], decon[i]);
+                if (myInfo == null)
+                {
+                    Console.WriteLine(rawfiles[i] + " failed to load.  Deleting temp and aborting!");
+                    return;
+                }
+                PrintInterference(myInfo, "number", @"C:\Users\aldr699\Documents\2012\iTRAQ\Sisi_Olearia\DataInt" + i + "b.txt");
+            }
+        }
+
         [Test]
         public void TestInterference()
         {
@@ -169,8 +206,20 @@ namespace InterDetect
         /// <returns>Provides a precursor info list</returns>
 		public static List<PrecursorInfo> ParentInfoPass(string rawfile, string isosfile)
 		{
+            bool worked;
             ThermoRawFileReaderDLL.FinniganFileIO.XRawFileIO myRaw = new ThermoRawFileReaderDLL.FinniganFileIO.XRawFileIO();
-            myRaw.OpenRawFile(rawfile);
+
+            worked = myRaw.OpenRawFile(rawfile);
+            if (!worked)
+            {
+                Console.WriteLine("File failed to open");
+                return null; ;
+            }
+            
+            if(myRaw.CheckFunctionality())
+            {
+                string rr= "tell m e";
+            }
             IsosHandler isos = new IsosHandler(isosfile);
             //open raw file and set controller
 
@@ -179,25 +228,55 @@ namespace InterDetect
 			//TODO: Add error code for 0 spectra
 			int currPrecScan = 0;
             //Go into each scan and collect precursor info.
+            double sr = 0.0;
+            int tt = 0;
 			for (int i = 1; i <= numSpectra; i++)
 			{
-				int msorder = 2;
+                if (i / (double)numSpectra > sr)
+                {
+                    Console.WriteLine(sr * 100.0 + "% completed");
+                    sr += .10;
+                }
+                
+                int msorder = 2;
                 if (isos.IsParentScan(i))
                     msorder = 1;
 
- 
+                if (i == 16716)
+                {
+                    string p = "stop";
+                    p = "please" + p;
+                }
+
                 ThermoRawFileReaderDLL.FinniganFileIO.FinniganFileReaderBaseClass.udtScanHeaderInfoType ude = 
                     new ThermoRawFileReaderDLL.FinniganFileIO.FinniganFileReaderBaseClass.udtScanHeaderInfoType();
-                myRaw.GetScanInfo(i, ref ude);
+                
 
+                myRaw.GetScanInfo(i, ref ude);
+          //      double premass = 0;
+          //      premass = ude.ParentIonMZ;
+          //      ThermoRawFileReaderDLL.FinniganFileIO.XRawFileIO.GetScanTypeNameFromFinniganScanFilterText(ude.FilterText, ref premass);
+                
 				if(msorder > 1)
 				{
                     int chargeState = Convert.ToInt32(ude.ScanEventValues[11]);
-                    double mz = Convert.ToDouble(ude.ScanEventValues[12]);
+                    double mz;
+                    if (ude.ParentIonMZ == 0.0)
+                    {
+                        mz = Convert.ToDouble(ude.ScanEventValues[12]);
+                    }
+                    else
+                    {
+                        mz = ude.ParentIonMZ;
+                    }
+                   // if (mz == 0)
+                    //{
+                    //    mz = premass;
+                    //}
                     double isolationWidth = Convert.ToDouble(ude.ScanEventValues[13]);
                     if (chargeState == 0)
                     {
-                        if (!isos.GetChargeState(i, mz, ref chargeState))
+                        if (!isos.GetChargeState(currPrecScan, mz, ref chargeState))
                         {
                             continue;
                         }
@@ -209,6 +288,7 @@ namespace InterDetect
                     info.preScanNumber = currPrecScan;
                     info.nChargeState = chargeState;
                     info.isolationwidth = isolationWidth;
+              //      Interference(ref info, ref myRaw, ref ude);
                     Interference(ref info, isos);
                     preInfo.Add(info);
                     
@@ -292,6 +372,127 @@ namespace InterDetect
             preInfo.interference = OverallInterference;
             //DatasetPrep.Utilities.WriteDataTableToText(dt, fhtFile.Substring(0, fhtFile.Length - 4) + "_int.txt");
         }
+
+        /// <summary>
+        /// Finds the interference of the target isotopic profile
+        /// </summary>
+        /// <param name="preInfo"></param>
+        /// <param name="isos"></param>
+        private static void Interference(ref PrecursorInfo preInfo, ref ThermoRawFileReaderDLL.FinniganFileIO.XRawFileIO raw,
+            ref ThermoRawFileReaderDLL.FinniganFileIO.FinniganFileReaderBaseClass.udtScanHeaderInfoType ude)
+        {
+            double[] mzlist = null;
+            double[] abulist = null;
+            
+
+
+
+            raw.GetScanData(preInfo.preScanNumber, ref mzlist, ref abulist, ref ude);
+            
+
+
+            const double C12_C13_MASS_DIFFERENCE = 1.0033548378;
+            double PreErrorAllowed = 10.0;
+            double lowt = preInfo.dIsoloationMass - (preInfo.isolationwidth);
+            double hight = preInfo.dIsoloationMass + (preInfo.isolationwidth);
+            double low = preInfo.dIsoloationMass - (preInfo.isolationwidth/2);
+            double high = preInfo.dIsoloationMass + (preInfo.isolationwidth/2);
+            bool lowbool = true;
+            int lowind = -1;
+            int highind= -1;
+            for (int i = 0; i < mzlist.Length; i++)
+            {
+                if (lowbool && mzlist[i] > lowt && lowbool)
+                {
+                    lowbool = false;
+                    lowind = i;
+                }
+                if (mzlist[i] > hight)
+                {
+                    highind = i - 1;
+                    break;
+                }
+            }
+
+            List<Peak> peaks = ConvertToPeaks(ref mzlist, ref abulist, lowind, highind);
+            for (int l = 0; l < peaks.Count; l++)
+            {
+                if (peaks[l].mz < low || peaks[l].mz > high)
+                {
+                    peaks.RemoveAt(l);
+                    l--;
+                }
+            }
+
+            double MaxPreInt = 0;
+            double MaxInterfereInt = 0;
+            //  int p = peaks.GetUpperBound(1);
+            double OverallInterference = 0;
+            if (lowind != -1 && highind != -1)
+            {
+                for (int j = 0; j < peaks.Count; j++ )
+                {
+                    double difference = (peaks[j].mz - preInfo.dIsoloationMass) * preInfo.nChargeState;
+                    double difference_Rounded = Math.Round(difference);
+                    double expected_difference = difference_Rounded * C12_C13_MASS_DIFFERENCE;
+                    double Difference_ppm = Math.Abs((expected_difference - difference) /
+                        (preInfo.dIsoloationMass * preInfo.nChargeState)) * 1000000;
+
+                    if (Difference_ppm < PreErrorAllowed)
+                    {
+                        MaxPreInt += peaks[j].abundance;
+                    }
+
+                    MaxInterfereInt += peaks[j].abundance;
+
+                }
+                OverallInterference = MaxPreInt / MaxInterfereInt;
+            }
+            else
+            {
+                Console.WriteLine("Did not find the precursor"); 
+            }
+            preInfo.interference = OverallInterference;
+            //DatasetPrep.Utilities.WriteDataTableToText(dt, fhtFile.Substring(0, fhtFile.Length - 4) + "_int.txt");
+        }
+
+        
+
+        private static List<Peak> ConvertToPeaks(ref double[] mzlist, ref double[] abulist, int lowind, int highind)
+        {
+            
+            List<Peak> mzs = new List<Peak>();
+
+            for (int i = lowind; i <= highind; i++)
+            {
+                if (abulist[i] != 0)
+                {
+                    int j = i;
+                    double abusum = 0.0;
+                    while (abulist[i] != 0)
+                    {
+                        abusum += abulist[i];
+                        i++;
+                    }
+                    i = j;
+                    double peaksum = 0.0;
+                    while (abulist[i] != 0)
+                    {
+                        peaksum += abulist[i] / abusum * mzlist[i];
+                        i++;
+                    }
+                    Peak centroidPeak = new Peak();
+                    centroidPeak.mz = peaksum;
+                    centroidPeak.abundance = abusum;
+                    mzs.Add(centroidPeak);
+
+                }
+            }
+
+            return mzs;
+
+        }
+
 
 
 	}

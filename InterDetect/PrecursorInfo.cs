@@ -15,4 +15,9 @@ namespace InterDetect
         public double interference;
 
     }
+
+    public class PrecursorInfoTest : PrecursorInfo
+    {
+        public double dActualMass;
+    }
 }

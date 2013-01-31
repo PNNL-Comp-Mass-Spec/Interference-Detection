@@ -486,105 +486,26 @@ namespace InterDetect
 		/// <param name="datasetID">Id number is a string because thats what sql gives me and there
 		/// is no point in switching it back and forth</param>
 		/// <param name="filepath"></param>
-		private void PrintInterference(List<PrecursorIntense> preinfo, string datasetID, string filepath)
+        private void PrintInterference(List<PrecursorIntense> preinfo, string datasetID, string filepath)
 		{
-			bool fieldExistance = File.Exists(filepath);
-			using (StreamWriter sw = new StreamWriter(filepath, fieldExistance))
-			{
-				if (!fieldExistance)
-				{
-					sw.Write("Dataset_ID\tScanNumber\tPrecursorScan\tParentMZ\tChargeState\tIsoWidth\tInterference\n");
-				}
+            bool fieldExistance = File.Exists(filepath);
+            using (StreamWriter sw = new StreamWriter(filepath, fieldExistance))
+            {
+                if (!fieldExistance)
+                {
+                    sw.Write("Dataset_ID\tScanNumber\tPrecursorScan\tParentMZ\tChargeState\tIsoWidth\tInterference\tPreIntensity\tIonCollectionTime\n");
+                }
 
-				foreach (PrecursorInfo info in preinfo)
-				{
-					sw.Write(datasetID + "\t" + info.nScanNumber + "\t" + info.preScanNumber + "\t" +
-						info.dIsoloationMass + "\t" + info.nChargeState + "\t" +
-						info.isolationwidth + "\t" + info.interference + "\n");
-				}
-			}
+                foreach (PrecursorIntense info in preinfo)
+                {
+                    sw.Write(datasetID + "\t" + info.nScanNumber + "\t" + info.preScanNumber + "\t" +
+                        info.dIsoloationMass + "\t" + info.nChargeState + "\t" +
+                        info.isolationwidth + "\t" + info.interference + "\t" +
+                        info.dPrecursorIntensity + "\t" + info.ionCollectionTime + "\n");
+                }
+            }
 		}
 
-		private void PrintInterference(List<PrecursorInfoTest> preinfo, string datasetID, string filepath)
-		{
-			bool writeHeaderLine = !File.Exists(filepath);
-			using (StreamWriter sw = new StreamWriter(new System.IO.FileStream(filepath,FileMode.Append, FileAccess.Write, FileShare.Read)))
-			{
-				if (writeHeaderLine)
-				{
-					sw.Write("Dataset_ID\tScanNumber\tPrecursorScan\tParentMZ\tChargeState\tIsoWidth\tInterference\n");
-				}
-
-				foreach (PrecursorInfo info in preinfo)
-				{
-					sw.Write(datasetID + "\t" + info.nScanNumber + "\t" + info.preScanNumber + "\t" +
-						info.dIsoloationMass + "\t" + info.nChargeState + "\t" +
-						info.isolationwidth + "\t" + info.interference + "\n");
-				}
-			}
-		}
-
-
-		private void PrintInterference2(List<PrecursorInfoTest> preinfo, string datasetID, string filepath)
-		{
-			bool fieldExistance = File.Exists(filepath);
-			using (StreamWriter sw = new StreamWriter(filepath, fieldExistance))
-			{
-				if (!fieldExistance)
-				{
-					sw.Write("Dataset_ID\tScanNumber\tPrecursorScan\tParentMZ\tActualMZ\tChargeState\tIsoWidth\tInterference\n");
-				}
-
-				foreach (PrecursorInfoTest info in preinfo)
-				{
-					sw.Write(datasetID + "\t" + info.nScanNumber + "\t" + info.preScanNumber + "\t" +
-						info.dIsoloationMass + "\t" + info.dActualMass + "\t" + info.nChargeState + "\t" +
-						info.isolationwidth + "\t" + info.interference + "\n");
-				}
-			}
-		}
-
-		/*
-		private void Interference(ref PrecursorInfo preInfo, IsosHandler isos)
-		{
-
-			const double C12_C13_MASS_DIFFERENCE = 1.0033548378;
-			double PreErrorAllowed = 10.0;
-			double low = preInfo.dIsoloationMass - (preInfo.isolationwidth / 2.0);
-			double high = preInfo.dIsoloationMass + (preInfo.isolationwidth / 2.0);
-
-			double[,] peaks = isos.GetPeakList2(preInfo.preScanNumber, low, high);
-
-			double MaxPreInt = 0;
-			double MaxInterfereInt = 0;
-			//  int p = peaks.GetUpperBound(1);
-			double OverallInterference = 0;
-			if (peaks != null)
-			{
-				for (int j = peaks.GetLowerBound(1); j <= peaks.GetUpperBound(1); j++)
-				{
-					double difference = (peaks[0, j] - preInfo.dIsoloationMass) * preInfo.nChargeState;
-					double difference_Rounded = Math.Round(difference);
-					double expected_difference = difference_Rounded * C12_C13_MASS_DIFFERENCE;
-					double Difference_ppm = Math.Abs((expected_difference - difference) /
-						(preInfo.dIsoloationMass * preInfo.nChargeState)) * 1000000;
-
-					if (Difference_ppm < PreErrorAllowed)
-					{
-						MaxPreInt += peaks[1, j];
-					}
-
-					MaxInterfereInt += peaks[1, j];
-
-				}
-				OverallInterference = MaxPreInt / MaxInterfereInt;
-			}
-			preInfo.interference = OverallInterference;
-			//DatasetPrep.Utilities.WriteDataTableToText(dt, fhtFile.Substring(0, fhtFile.Length - 4) + "_int.txt");
-		}
-		*/
-
-	
 
 		private void Interference2(ref PrecursorIntense preInfo, ref XRawFileIO raw, ref FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo)
 		{

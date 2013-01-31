@@ -354,7 +354,7 @@ namespace InterDetect
 			worked = myRaw.OpenRawFile(rawfile);
 			if (!worked)
 			{
-				throw new Exception("File failed to open .Raw file in ParentInfoPass2: " + rawfile);
+				throw new Exception("File failed to open .Raw file in ParentInfoPass: " + rawfile);
 			}
 
 
@@ -723,6 +723,76 @@ namespace InterDetect
 
 		}
 
+        private static int BinarySearch(ref double[] mzlist, int a, int b, int c, double mzToFind)
+        {
+            int n = 0;
+            int nmax = 100;
+            double tol = 0.1;
+
+            while (n < nmax)
+            {
+                if (Math.Abs(mzlist[c] - mzToFind) < tol || c == (b + a) / 2)
+                {
+                    break;
+                }
+                c = (b + a) / 2;
+                if (mzlist[c] < mzToFind)
+                {
+                    a = c;
+                }
+                if (mzlist[c] > mzToFind)
+                {
+                    b = c;
+                }
+            }
+            return c;
+
+
+        }
+
+
+        /// <summary>
+        /// finds the peak closest to the targeted peak to be isolated in raw header and 
+        /// gets the intensity info.
+        /// </summary>
+        /// <param name="preInfo"></param>
+        /// <param name="peaks"></param>
+        private static void ClosestToTarget(PrecursorIntense preInfo, List<Peak> peaks)
+        {
+            double closest = 1000.0;
+            foreach (Peak p in peaks)
+            {
+                double temp = Math.Abs(p.mz - preInfo.dIsoloationMass);
+                if (temp < closest)
+                {
+                    preInfo.dActualMass = p.mz;
+                    closest = temp;
+                    preInfo.dPrecursorIntensity = p.abundance;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Removes peaks which were not within the isolation window.
+        /// </summary>
+        /// <param name="low"></param>
+        /// <param name="high"></param>
+        /// <param name="peaks"></param>
+        private static void OutsideOfIsoWindow(double low, double high, ref List<Peak> peaks)
+        {
+            var rem_peaks = from peak in peaks
+                            where peak.mz < high
+                            && peak.mz > low
+                            select peak;
+
+            peaks = rem_peaks.ToList();
+
+        }
+
+        private static bool alwaysTrue(Peak input)
+        {
+            return true;
+        }
 
 
 	}

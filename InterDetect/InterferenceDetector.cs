@@ -36,12 +36,13 @@ namespace InterDetect
 			public int chargeState;
 			public int mz;
 			public int isolationWidth;
+            public int agctime;
 		};
 
 		public event ProgressChangedHandler ProgressChanged;
 		public delegate void ProgressChangedHandler(InterferenceDetector id, ProgressInfo e);
 
-		protected delegate void InterferenceDelegate(ref PrecursorInfoTest preInfo, ref XRawFileIO raw, ref FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo);
+		protected delegate void InterferenceDelegate(ref PrecursorIntense preInfo, ref XRawFileIO raw, ref FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo);
 
 		[Test]
 		public void DatabaseCheck()
@@ -156,11 +157,11 @@ namespace InterDetect
 				++fileCountCurrent;
 				Console.WriteLine("Processing file " + fileCountCurrent + " / " + filepaths.Count + ": " + Path.GetFileName(filepaths[datasetID]));
 
-				List<PrecursorInfoTest> myInfo = ParentInfoPass2(fileCountCurrent, filepaths.Count, filepaths[datasetID], isosPaths[datasetID]);
+				List<PrecursorIntense> myInfo = ParentInfoPass(fileCountCurrent, filepaths.Count, filepaths[datasetID], isosPaths[datasetID]);
 				if (myInfo == null)
 				{
 					DeleteFile(tempPrecFilePath);
-					throw new Exception("Error in PerformWork: ParentInfoPass2 returned null loading " + filepaths[datasetID]);
+					throw new Exception("Error in PerformWork: ParentInfoPass returned null loading " + filepaths[datasetID]);
 				}
 
 				PrintInterference(myInfo, datasetID, tempPrecFilePath);
@@ -300,13 +301,13 @@ namespace InterDetect
 			for (int i = 0; i < filesToProcess; i++)
 			{
 
-				List<PrecursorInfoTest> myInfo = ParentInfoPass2(i + 1, filesToProcess, rawfiles[i], decon[i]);
+				List<PrecursorIntense> myInfo = ParentInfoPass(i + 1, filesToProcess, rawfiles[i], decon[i]);
 				if (myInfo == null)
 				{
 					Console.WriteLine(rawfiles[i] + " failed to load.  Deleting temp and aborting!");
 					return;
 				}
-				PrintInterference2(myInfo, "number", @"C:\Users\aldr699\Documents\2012\iTRAQ\InterferenceTesting\DataInt" + i + "efz50.txt");
+				//PrintInterference2(myInfo, "number", @"C:\Users\aldr699\Documents\2012\iTRAQ\InterferenceTesting\DataInt" + i + "efz50.txt");
 			}
 		}
 
@@ -330,7 +331,7 @@ namespace InterDetect
 		/// <param name="rawfile">Path to the the .Raw file</param>
 		/// <param name="isosfile">Path to the .Isos file</param>
 		/// <returns>Precursor info list</returns>
-		public List<PrecursorInfoTest> ParentInfoPass2(int fileCountCurrent, int fileCountTotal, string rawfile, string isosfile)
+		public List<PrecursorIntense> ParentInfoPass(int fileCountCurrent, int fileCountTotal, string rawfile, string isosfile)
 		{
 			return ParentInfoPassWork(fileCountCurrent, fileCountTotal, rawfile, isosfile, Interference2);
 		}
@@ -345,7 +346,7 @@ namespace InterDetect
 		/// <param name="isosfile">Path to the .Isos file</param>
 		/// <param name="delegInterference">Function name to use for Interference Detection (either Interference or Interference2)</param>
 		/// <returns>Precursor info list</returns>
-		protected List<PrecursorInfoTest> ParentInfoPassWork(int fileCountCurrent, int fileCountTotal, string rawfile, string isosfile, InterferenceDelegate delegInterference)
+		protected List<PrecursorIntense> ParentInfoPassWork(int fileCountCurrent, int fileCountTotal, string rawfile, string isosfile, InterferenceDelegate delegInterference)
 		{
 			bool worked;
 			XRawFileIO myRaw = new XRawFileIO();
@@ -359,7 +360,7 @@ namespace InterDetect
 
 			IsosHandler isos = new IsosHandler(isosfile);
 
-			List<PrecursorInfoTest> preInfo = new List<PrecursorInfoTest>();
+			List<PrecursorIntense> preInfo = new List<PrecursorIntense>();
 			int numSpectra = myRaw.GetNumScans();
 
 			List<string> lstScanEventNames = new List<string>();
@@ -386,12 +387,8 @@ namespace InterDetect
 					msorder = 1;
 
 				FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo = new FinniganFileReaderBaseClass.udtScanHeaderInfoType();
-
-
 				myRaw.GetScanInfo(scanNumber, out scanInfo);
-				//      double premass = 0;
-				//      premass = scanInfo.ParentIonMZ;
-				//      XRawFileIO.GetScanTypeNameFromFinniganScanFilterText(scanInfo.FilterText, ref premass);
+
 
 				if (msorder > 1)
 				{
@@ -413,10 +410,6 @@ namespace InterDetect
 					{
 						mz = scanInfo.ParentIonMZ;
 					}
-					// if (mz == 0)
-					//{
-					//    mz = premass;
-					//}
 					double isolationWidth = Convert.ToDouble(scanInfo.ScanEventValues[scanEventIndices.isolationWidth]);
 					if (chargeState == 0)
 					{
@@ -427,12 +420,13 @@ namespace InterDetect
 						}
 					}
 
-					PrecursorInfoTest info = new PrecursorInfoTest();
+					PrecursorIntense info = new PrecursorIntense();
 					info.dIsoloationMass = mz;
 					info.nScanNumber = scanNumber;
 					info.preScanNumber = currPrecScan;
 					info.nChargeState = chargeState;
 					info.isolationwidth = isolationWidth;
+                    info.ionCollectionTime = Convert.ToDouble(scanInfo.ScanEventValues[2]);
 					delegInterference(ref info, ref myRaw, ref scanInfo);
 					preInfo.Add(info);
 
@@ -492,7 +486,7 @@ namespace InterDetect
 		/// <param name="datasetID">Id number is a string because thats what sql gives me and there
 		/// is no point in switching it back and forth</param>
 		/// <param name="filepath"></param>
-		private void PrintInterference(List<PrecursorInfo> preinfo, string datasetID, string filepath)
+		private void PrintInterference(List<PrecursorIntense> preinfo, string datasetID, string filepath)
 		{
 			bool fieldExistance = File.Exists(filepath);
 			using (StreamWriter sw = new StreamWriter(filepath, fieldExistance))
@@ -590,90 +584,9 @@ namespace InterDetect
 		}
 		*/
 
-		/// <summary>
-		/// Finds the interference of the target isotopic profile
-		/// This function has been superseded by Interference2
-		/// </summary>
-		/// <param name="preInfo"></param>
-		/// <param name="isos"></param>
-		private void Interference(ref PrecursorInfoTest preInfo, ref XRawFileIO raw, ref FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo)
-		{
-			double[] mzlist = null;
-			double[] abulist = null;
+	
 
-
-
-
-			raw.GetScanData(preInfo.preScanNumber, ref mzlist, ref abulist, ref scanInfo);
-
-
-
-			const double C12_C13_MASS_DIFFERENCE = 1.0033548378;
-			double PreErrorAllowed = 10.0;
-			double lowt = preInfo.dIsoloationMass - (preInfo.isolationwidth);
-			double hight = preInfo.dIsoloationMass + (preInfo.isolationwidth);
-			double low = preInfo.dIsoloationMass - (preInfo.isolationwidth / 2);
-			double high = preInfo.dIsoloationMass + (preInfo.isolationwidth / 2);
-			bool lowbool = true;
-			int lowind = -1;
-			int highind = -1;
-			for (int i = 0; i < mzlist.Length; i++)
-			{
-				if (lowbool && mzlist[i] > lowt && lowbool)
-				{
-					lowbool = false;
-					lowind = i;
-				}
-				if (mzlist[i] > hight)
-				{
-					highind = i - 1;
-					break;
-				}
-			}
-
-			List<Peak> peaks = ConvertToPeaks(ref mzlist, ref abulist, lowind, highind);
-			for (int l = 0; l < peaks.Count; l++)
-			{
-				if (peaks[l].mz < low || peaks[l].mz > high)
-				{
-					peaks.RemoveAt(l);
-					l--;
-				}
-			}
-
-			double MaxPreInt = 0;
-			double MaxInterfereInt = 0;
-			//  int p = peaks.GetUpperBound(1);
-			double OverallInterference = 0;
-			if (lowind != -1 && highind != -1)
-			{
-				for (int j = 0; j < peaks.Count; j++)
-				{
-					double difference = (peaks[j].mz - preInfo.dIsoloationMass) * preInfo.nChargeState;
-					double difference_Rounded = Math.Round(difference);
-					double expected_difference = difference_Rounded * C12_C13_MASS_DIFFERENCE;
-					double Difference_ppm = Math.Abs((expected_difference - difference) /
-						(preInfo.dIsoloationMass * preInfo.nChargeState)) * 1000000;
-
-					if (Difference_ppm < PreErrorAllowed)
-					{
-						MaxPreInt += peaks[j].abundance;
-					}
-
-					MaxInterfereInt += peaks[j].abundance;
-
-				}
-				OverallInterference = MaxPreInt / MaxInterfereInt;
-			}
-			else
-			{
-				Console.WriteLine("Did not find the precursor");
-			}
-			preInfo.interference = OverallInterference;
-			//DatasetPrep.Utilities.WriteDataTableToText(dt, fhtFile.Substring(0, fhtFile.Length - 4) + "_int.txt");
-		}
-
-		private void Interference2(ref PrecursorInfoTest preInfo, ref XRawFileIO raw, ref FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo)
+		private void Interference2(ref PrecursorIntense preInfo, ref XRawFileIO raw, ref FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo)
 		{
 			double[] mzlist = null;
 			double[] abulist = null;

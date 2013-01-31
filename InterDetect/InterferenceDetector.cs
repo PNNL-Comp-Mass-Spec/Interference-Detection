@@ -307,7 +307,7 @@ namespace InterDetect
 					Console.WriteLine(rawfiles[i] + " failed to load.  Deleting temp and aborting!");
 					return;
 				}
-				//PrintInterference2(myInfo, "number", @"C:\Users\aldr699\Documents\2012\iTRAQ\InterferenceTesting\DataInt" + i + "efz50.txt");
+				PrintInterference(myInfo, "number", @"C:\Users\aldr699\Documents\2012\iTRAQ\InterferenceTesting\DataInt" + i + "efz50.txt");
 			}
 		}
 
@@ -333,7 +333,7 @@ namespace InterDetect
 		/// <returns>Precursor info list</returns>
 		public List<PrecursorIntense> ParentInfoPass(int fileCountCurrent, int fileCountTotal, string rawfile, string isosfile)
 		{
-			return ParentInfoPassWork(fileCountCurrent, fileCountTotal, rawfile, isosfile, Interference2);
+			return ParentInfoPassWork(fileCountCurrent, fileCountTotal, rawfile, isosfile, Interference);
 		}
 
 
@@ -426,7 +426,7 @@ namespace InterDetect
 					info.preScanNumber = currPrecScan;
 					info.nChargeState = chargeState;
 					info.isolationwidth = isolationWidth;
-                    info.ionCollectionTime = Convert.ToDouble(scanInfo.ScanEventValues[2]);
+                    info.ionCollectionTime = Convert.ToDouble(scanInfo.ScanEventValues[scanEventIndices.agctime]);
 					delegInterference(ref info, ref myRaw, ref scanInfo);
 					preInfo.Add(info);
 
@@ -462,6 +462,9 @@ namespace InterDetect
 
 			if (!ParseScanEventNameLookupIndex(dctScanEventNames, "MS2 Isolation Width", out scanEventIndices.isolationWidth, out errorMessage))
 				return false;
+
+            if (!ParseScanEventNameLookupIndex(dctScanEventNames, "Ion Injection Time (ms)", out scanEventIndices.agctime, out errorMessage))
+                return false;
 
 			return true;
 		}
@@ -507,94 +510,81 @@ namespace InterDetect
 		}
 
 
-		private void Interference2(ref PrecursorIntense preInfo, ref XRawFileIO raw, ref FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo)
+		private void Interference(ref PrecursorIntense preInfo, ref XRawFileIO raw, ref FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo)
 		{
 			double[] mzlist = null;
 			double[] abulist = null;
 
-
-
-
 			raw.GetScanData(preInfo.preScanNumber, ref mzlist, ref abulist, ref scanInfo);
 
+            double lowt = preInfo.dIsoloationMass - (preInfo.isolationwidth);
+            double hight = preInfo.dIsoloationMass + (preInfo.isolationwidth);
+            double low = preInfo.dIsoloationMass - (preInfo.isolationwidth / 2);
+            double high = preInfo.dIsoloationMass + (preInfo.isolationwidth / 2);
+            int lowind = -1;
+            int highind = -1;
 
+            int a = 0;
+            int b = mzlist.Length;
+            int c = 0;
 
-			const double C12_C13_MASS_DIFFERENCE = 1.0033548378;
-			double PreErrorAllowed = 10.0;
-			double lowt = preInfo.dIsoloationMass - (preInfo.isolationwidth);
-			double hight = preInfo.dIsoloationMass + (preInfo.isolationwidth);
-			double low = preInfo.dIsoloationMass - (preInfo.isolationwidth / 2);
-			double high = preInfo.dIsoloationMass + (preInfo.isolationwidth / 2);
-			bool lowbool = true;
-			int lowind = -1;
-			int highind = -1;
-			for (int i = 0; i < mzlist.Length; i++)
-			{
-				if (lowbool && mzlist[i] > lowt && lowbool)
-				{
-					lowbool = false;
-					lowind = i;
-				}
-				if (mzlist[i] > hight)
-				{
-					highind = i - 1;
-					break;
-				}
-			}
-
+            lowind = BinarySearch(ref mzlist, a, b, c, lowt);
+            highind = BinarySearch(ref mzlist, lowind, b, c, hight);
+            
+            //capture all peaks in isowidth+buffer
 			List<Peak> peaks = ConvertToPeaks(ref mzlist, ref abulist, lowind, highind);
 
-			for (int l = 0; l < peaks.Count; l++)
-			{
-				if (peaks[l].mz < low || peaks[l].mz > high)
-				{
-					peaks.RemoveAt(l);
-					l--;
-				}
-			}
-
-			double closest = 1000.0;
-			foreach (Peak p in peaks)
-			{
-				double temp = Math.Abs(p.mz - preInfo.dIsoloationMass);
-				if (temp < closest)
-				{
-					preInfo.dActualMass = p.mz;
-					closest = temp;
-				}
-			}
-
-			double MaxPreInt = 0;
-			double MaxInterfereInt = 0;
-			//  int p = peaks.GetUpperBound(1);
-			double OverallInterference = 0;
-			if (lowind != -1 && highind != -1)
-			{
-				for (int j = 0; j < peaks.Count; j++)
-				{
-					double difference = (peaks[j].mz - preInfo.dActualMass) * preInfo.nChargeState;
-					double difference_Rounded = Math.Round(difference);
-					double expected_difference = difference_Rounded * C12_C13_MASS_DIFFERENCE;
-					double Difference_ppm = Math.Abs((expected_difference - difference) /
-						(preInfo.dIsoloationMass * preInfo.nChargeState)) * 1000000;
-
-					if (Difference_ppm < PreErrorAllowed)
-					{
-						MaxPreInt += peaks[j].abundance;
-					}
-
-					MaxInterfereInt += peaks[j].abundance;
-
-				}
-				OverallInterference = MaxPreInt / MaxInterfereInt;
-			}
-			else
-			{
-				Console.WriteLine("Did not find the precursor");
-			}
-			preInfo.interference = OverallInterference;
-			//DatasetPrep.Utilities.WriteDataTableToText(dt, fhtFile.Substring(0, fhtFile.Length - 4) + "_int.txt");
+            //remove peaks lying outside of range
+            OutsideOfIsoWindow(low, high, ref peaks);
+            //find target peak for use as precursor to find interference
+            ClosestToTarget(preInfo, peaks);
+            //perform the calculation
+            InterferenceCalculation(preInfo, lowind, highind, peaks);
 		}
+
+
+        /// <summary>
+        /// Calculates interference with the precursor ion
+        /// </summary>
+        /// <param name="preInfo"></param>
+        /// <param name="lowind"></param>
+        /// <param name="highind"></param>
+        /// <param name="peaks"></param>
+        private static void InterferenceCalculation(PrecursorIntense preInfo, int lowind, int highind, List<Peak> peaks)
+        {
+            const double C12_C13_MASS_DIFFERENCE = 1.0033548378;
+            double PreErrorAllowed = 10.0;
+            double MaxPreInt = 0;
+            double MaxInterfereInt = 0;
+            //  int p = peaks.GetUpperBound(1);
+            double OverallInterference = 0;
+            if (lowind != -1 && highind != -1)
+            {
+                for (int j = 0; j < peaks.Count; j++)
+                {
+                    double difference = (peaks[j].mz - preInfo.dActualMass) * preInfo.nChargeState;
+                    double difference_Rounded = Math.Round(difference);
+                    double expected_difference = difference_Rounded * C12_C13_MASS_DIFFERENCE;
+                    double Difference_ppm = Math.Abs((expected_difference - difference) /
+                        (preInfo.dIsoloationMass * preInfo.nChargeState)) * 1000000;
+
+                    if (Difference_ppm < PreErrorAllowed)
+                    {
+                        MaxPreInt += peaks[j].abundance;
+                    }
+
+                    MaxInterfereInt += peaks[j].abundance;
+
+                }
+                OverallInterference = MaxPreInt / MaxInterfereInt;
+            }
+            else
+            {
+                Console.WriteLine("Did not find the precursor");
+            }
+            preInfo.interference = OverallInterference;
+        }
+
 
 		private List<Peak> ConvertToPeaks(ref double[] mzlist, ref double[] abulist, int lowind, int highind)
 		{

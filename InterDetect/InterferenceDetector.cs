@@ -41,6 +41,8 @@ namespace InterDetect
 		public event ProgressChangedHandler ProgressChanged;
 		public delegate void ProgressChangedHandler(InterferenceDetector id, ProgressInfo e);
 
+		protected delegate void InterferenceDelegate(ref PrecursorInfoTest preInfo, ref XRawFileIO raw, ref FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo);
+
 		[Test]
 		public void DatabaseCheck()
 		{
@@ -331,103 +333,59 @@ namespace InterDetect
 
 		/// <summary>
 		/// Collects the parent ion information as well as inteference 
+		/// This function has been superseded by ParentInfoPass2
 		/// </summary>
-		/// <param name="rawfile"></param>
-		/// <param name="isosfile"></param>
-		/// <returns>Provides a precursor info list</returns>
+		/// <param name="rawfile">Path to the the .Raw file</param>
+		/// <param name="isosfile">Path to the .Isos file</param>
+		/// <returns>Precursor info list</returns>
 		public List<PrecursorInfo> ParentInfoPass(string rawfile, string isosfile)
 		{
-			bool worked;
-			XRawFileIO myRaw = new XRawFileIO();
+			List<PrecursorInfoTest> lstResults;
+			lstResults = ParentInfoPassWork(1, 1, rawfile, isosfile, Interference);
 
-			worked = myRaw.OpenRawFile(rawfile);
-			if (!worked)
-			{
-				Console.WriteLine("File failed to open .Raw file in ParentInfoPass: " + rawfile);
-				return null;
-			}
-
-
-			IsosHandler isos = new IsosHandler(isosfile);
-
-
+			// Copy the data from lstResults to preInfo
 			List<PrecursorInfo> preInfo = new List<PrecursorInfo>();
-			int numSpectra = myRaw.GetNumScans();
-			//TODO: Add error code for 0 spectra
-			int currPrecScan = 0;
-			//Go into each scan and collect precursor info.
-			double sr = 0.0;
-			for (int i = 1; i <= numSpectra; i++)
+			
+			foreach (PrecursorInfoTest oItem in lstResults)
 			{
-				if (i / (double)numSpectra > sr)
-				{
-					if (sr > 0)
-						Console.WriteLine("  " + sr * 100.0 + "% complete");
+				PrecursorInfo oNewItem = new PrecursorInfo();
+				oNewItem.dIsoloationMass = oItem.dIsoloationMass;
+				oNewItem.nChargeState = oItem.nChargeState;
+				oNewItem.nScanNumber = oItem.nScanNumber;
+				oNewItem.preScanNumber = oItem.preScanNumber;
+				oNewItem.isolationwidth = oItem.isolationwidth;
+				oNewItem.interference = oItem.interference;
 
-					sr += .10;
-				}
-
-				int msorder = 2;
-				if (isos.IsParentScan(i))
-					msorder = 1;
-
-				FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo = new FinniganFileReaderBaseClass.udtScanHeaderInfoType();
-
-
-				myRaw.GetScanInfo(i, out scanInfo);
-				//      double premass = 0;
-				//      premass = scanInfo.ParentIonMZ;
-				//      XRawFileIO.GetScanTypeNameFromFinniganScanFilterText(scanInfo.FilterText, ref premass);
-
-				if (msorder > 1)
-				{
-					int chargeState = Convert.ToInt32(scanInfo.ScanEventValues[11]);
-					double mz;
-					if (scanInfo.ParentIonMZ == 0.0)
-					{
-						mz = Convert.ToDouble(scanInfo.ScanEventValues[12]);
-					}
-					else
-					{
-						mz = scanInfo.ParentIonMZ;
-					}
-					// if (mz == 0)
-					//{
-					//    mz = premass;
-					//}
-					double isolationWidth = Convert.ToDouble(scanInfo.ScanEventValues[13]);
-					if (chargeState == 0)
-					{
-						if (!isos.GetChargeState(currPrecScan, mz, ref chargeState))
-						{
-							continue;
-						}
-					}
-
-					PrecursorInfo info = new PrecursorInfo();
-					info.dIsoloationMass = mz;
-					info.nScanNumber = i;
-					info.preScanNumber = currPrecScan;
-					info.nChargeState = chargeState;
-					info.isolationwidth = isolationWidth;
-					Interference(ref info, ref myRaw, ref scanInfo);
-					//       Interference(ref info, isos);
-					preInfo.Add(info);
-
-
-				}
-				else if (msorder == 1)
-				{
-					currPrecScan = i;
-				}
-
+				preInfo.Add(oNewItem);
 			}
-			myRaw.CloseRawFile();
+
 			return preInfo;
 		}
 
-
+		/// <summary>
+		/// Collects the parent ion information as well as inteference 
+		/// </summary>
+		/// <param name="fileCountCurrent">Rank order of the current dataset being processed</param>
+		/// <param name="fileCountTotal">Total number of dataset files to process</param>
+		/// <param name="rawfile">Path to the the .Raw file</param>
+		/// <param name="isosfile">Path to the .Isos file</param>
+		/// <returns>Precursor info list</returns>
 		public List<PrecursorInfoTest> ParentInfoPass2(int fileCountCurrent, int fileCountTotal, string rawfile, string isosfile)
+		{
+			return ParentInfoPassWork(fileCountCurrent, fileCountTotal, rawfile, isosfile, Interference2);
+		}
+
+
+		/// <summary>
+		/// Collects the parent ion information as well as inteference 
+		/// </summary>
+		/// <param name="fileCountCurrent">Rank order of the current dataset being processed</param>
+		/// <param name="fileCountTotal">Total number of dataset files to process</param>
+		/// <param name="rawfile">Path to the the .Raw file</param>
+		/// <param name="isosfile">Path to the .Isos file</param>
+		/// <param name="delegInterference">Function name to use for Interference Detection (either Interference or Interference2)</param>
+		/// <returns>Precursor info list</returns>
+		protected List<PrecursorInfoTest> ParentInfoPassWork(int fileCountCurrent, int fileCountTotal, string rawfile, string isosfile, InterferenceDelegate delegInterference)
 		{
 			bool worked;
 			XRawFileIO myRaw = new XRawFileIO();
@@ -515,8 +473,7 @@ namespace InterDetect
 					info.preScanNumber = currPrecScan;
 					info.nChargeState = chargeState;
 					info.isolationwidth = isolationWidth;
-					Interference2(ref info, ref myRaw, ref scanInfo);
-					//       Interference(ref info, isos);
+					delegInterference(ref info, ref myRaw, ref scanInfo);
 					preInfo.Add(info);
 
 
@@ -632,11 +589,8 @@ namespace InterDetect
 				}
 			}
 		}
-		/// <summary>
-		/// Finds the interference of the target isotopic profile
-		/// </summary>
-		/// <param name="preInfo"></param>
-		/// <param name="isos"></param>
+
+		/*
 		private void Interference(ref PrecursorInfo preInfo, IsosHandler isos)
 		{
 
@@ -674,13 +628,15 @@ namespace InterDetect
 			preInfo.interference = OverallInterference;
 			//DatasetPrep.Utilities.WriteDataTableToText(dt, fhtFile.Substring(0, fhtFile.Length - 4) + "_int.txt");
 		}
+		*/
 
 		/// <summary>
 		/// Finds the interference of the target isotopic profile
+		/// This function has been superseded by Interference2
 		/// </summary>
 		/// <param name="preInfo"></param>
 		/// <param name="isos"></param>
-		private void Interference(ref PrecursorInfo preInfo, ref XRawFileIO raw, ref FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo)
+		private void Interference(ref PrecursorInfoTest preInfo, ref XRawFileIO raw, ref FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo)
 		{
 			double[] mzlist = null;
 			double[] abulist = null;

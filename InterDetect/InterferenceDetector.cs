@@ -20,12 +20,26 @@ namespace InterDetect
 		public double abundance;
 	};
 
+	public class ProgressInfo : EventArgs
+	{
+		public float Value { get; set;}
+	}
+
 	public class InterferenceDetector
 	{
-
-		private const string tempfile = "prec_info_temp.txt";
+		
 		private const string raw_ext = ".raw";
 		private const string isos_ext = "_isos.csv";
+
+		protected struct ScanEventIndicesType
+		{
+			public int chargeState;
+			public int mz;
+			public int isolationWidth;
+		};
+
+		public event ProgressChangedHandler ProgressChanged;
+		public delegate void ProgressChangedHandler(InterferenceDetector id, ProgressInfo e);
 
 		[Test]
 		public void DatabaseCheck()
@@ -37,6 +51,7 @@ namespace InterDetect
 
 		}
 
+
 		/// <summary>
 		/// Given a datapath makes queries to the database for isos file and raw file paths.  Uses these 
 		/// to generate an interference table and adds this table to the database
@@ -44,40 +59,183 @@ namespace InterDetect
 		/// <param name="datapath">directory to the database, assumed that database is called Results.db3</param>
 		public bool Run(string datapath)
 		{
+			return Run(datapath, "Results.db3");
+		}
+
+		/// <summary>
+		/// Given a datapath makes queries to the database for isos file and raw file paths.  Uses these 
+		/// to generate an interference table and adds this table to the database
+		/// </summary>
+		/// <param name="databaseFolderPath">directory to the folder with the database</param>
+		/// <param name="databaseFileName">Name of the database</param>
+		public bool Run(string databaseFolderPath, string databaseFileName)
+		{
+
+			// Keys in this dictionary are folder paths; values are the name of the .Raw file
+			Dictionary<string, string> filepaths;
+
+			Dictionary<string, string> isosPaths;
+			bool success = false;
+			
+			System.IO.DirectoryInfo diDataFolder = new System.IO.DirectoryInfo(databaseFolderPath);
+			if (!diDataFolder.Exists)
+				throw new System.IO.DirectoryNotFoundException("Database folder not found: " + databaseFolderPath);
+
+
+			System.IO.FileInfo fiDatabaseFile = new System.IO.FileInfo(System.IO.Path.Combine(diDataFolder.FullName, databaseFileName));
+			if (!fiDatabaseFile.Exists)
+				throw new System.IO.FileNotFoundException("Database not found: " + fiDatabaseFile.FullName);
+
 			// build Mage pipeline to read contents of 
 			// a table in a SQLite database into a data buffer
 
 			// first, make the Mage SQLite reader module
 			// and configure it to read the table
 			SQLiteReader reader = new SQLiteReader();
-			reader.Database = Path.Combine(datapath, "Results.db3");
+			reader.Database = fiDatabaseFile.FullName;
+
+			try
+			{
+				success = LookupMSMSFiles(reader, out filepaths);
+				if (!success)
+					return false;
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Error calling LookupMSMSFiles: " + ex.Message, ex);
+			}
+
+			try
+			{
+				success = LookupDeconToolsInfo(reader, out isosPaths);
+				if (!success)
+					return false;
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Error calling LookupDeconToolsInfo: " + ex.Message, ex);
+			}
+			
+			if (isosPaths.Count != filepaths.Count)
+			{
+				throw new Exception("Error in InterferenceDetector.Run: isosPaths.count <> filePaths.count");
+			}
+
+			try
+			{
+				success = PerformWork(fiDatabaseFile, filepaths, isosPaths);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Error calling PerformWork: " + ex.Message, ex);
+			}
 
 
+			return true;
+
+		}
+
+		private bool PerformWork(System.IO.FileInfo fiDatabaseFile, Dictionary<string, string> filepaths, Dictionary<string, string> isosPaths)
+		{
+			string errorMessage = string.Empty;
+			int fileCountCurrent = 0;
+
+			//Calculate the needed info and generate a temporary file, keep adding each dataset to this file
+			string tempPrecFilePath = Path.Combine(fiDatabaseFile.DirectoryName, "prec_info_temp.txt");
+
+			foreach (string datasetID in filepaths.Keys)
+			{
+				if (!isosPaths.ContainsKey(datasetID))
+				{
+					DeleteFile(tempPrecFilePath);
+					throw new Exception("Error in PerformWork: Dataset '" + datasetID + "' not found in isosPaths dictionary");
+				}
+
+				++fileCountCurrent;
+				Console.WriteLine("Processing file " + fileCountCurrent + " / " + filepaths.Count + ": " + Path.GetFileName(filepaths[datasetID]));
+
+				List<PrecursorInfoTest> myInfo = ParentInfoPass2(fileCountCurrent, filepaths.Count, filepaths[datasetID], isosPaths[datasetID]);
+				if (myInfo == null)
+				{
+					DeleteFile(tempPrecFilePath);
+					throw new Exception("Error in PerformWork: ParentInfoPass2 returned null loading " + filepaths[datasetID]);
+				}
+
+				PrintInterference(myInfo, datasetID, tempPrecFilePath);
+
+				Console.WriteLine("Iteration Complete");
+			}
+
+			try
+			{
+				//Create a delimeted file reader and write a new table with this info to database
+				DelimitedFileReader delimreader = new DelimitedFileReader();
+				delimreader.FilePath = tempPrecFilePath;
+
+				SQLiteWriter writer = new SQLiteWriter();
+				string tableName = "t_precursor_interference";
+				writer.DbPath = fiDatabaseFile.FullName;
+				writer.TableName = tableName;
+
+				ProcessingPipeline.Assemble("ImportToSQLite", delimreader, writer).RunRoot(null);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Error adding table t_precursor_interference to the SqLite database: " + ex.Message, ex);
+			}		
+
+			//cleanup
+			DeleteFile(tempPrecFilePath);
+
+			return true;
+		}
+
+		private void DeleteFile(string filePath)
+		{
+			try
+			{
+				if (File.Exists(filePath))
+					File.Delete(filePath);
+			}
+			catch
+			{
+				// Ignore errors here
+			}
+		}
+
+		private bool LookupMSMSFiles(SQLiteReader reader, out Dictionary<string, string> filepaths)
+		{
 			reader.SQLText = "SELECT * FROM t_msms_raw_files;";
 
-			// next, make a Mage sink module (simple row buffer)
+			// Make a Mage sink module (simple row buffer)
 			SimpleSink sink = new SimpleSink();
 
-			// construct and run the Mage pipeline
+			// construct and run the Mage pipeline to obtain data from t_msms_raw_files
 			ProcessingPipeline.Assemble("Test_Pipeline", reader, sink).RunRoot(null);
-
 
 			// example of reading the rows in the buffer object
 			// (dump folder column values to Console)
 			int folderPathIdx = sink.ColumnIndex["Folder"];
 			int datasetIDIdx = sink.ColumnIndex["Dataset_ID"];
 			int datasetIdx = sink.ColumnIndex["Dataset"];
-			Dictionary<string, string> filepaths = new Dictionary<string, string>();
+			filepaths = new Dictionary<string, string>();
 			foreach (object[] row in sink.Rows)
 			{
 				filepaths.Add(row[datasetIDIdx].ToString(), Path.Combine(row[folderPathIdx].ToString(), row[datasetIdx].ToString() + raw_ext));
 			}
 			if (filepaths.Count == 0)
 			{
-				return false;
+				throw new Exception("Error in LookupMSMSFiles; no results found using " + reader.SQLText);
 			}
-			//Restart the buffer
-			sink = new SimpleSink();
+
+			return true;
+		}
+
+
+		private bool LookupDeconToolsInfo(SQLiteReader reader, out Dictionary<string, string> isosPaths)
+		{
+			// Make a Mage sink module (simple row buffer)
+			SimpleSink sink = new SimpleSink();
 
 			//Add rows from other table
 			reader.SQLText = "SELECT * FROM t_results_metadata WHERE t_results_metadata.Tool Like 'Decon%'";
@@ -88,8 +246,9 @@ namespace InterDetect
 			int datasetID = sink.ColumnIndex["Dataset_ID"];
 			int dataset = sink.ColumnIndex["Dataset"];
 			int folder = sink.ColumnIndex["Folder"];
-			Dictionary<string, string> isosPaths = new Dictionary<string, string>();
-			//store the filepaths indexed by datasetID
+			isosPaths = new Dictionary<string, string>();
+
+			//store the paths indexed by datasetID in isosPaths
 			foreach (object[] row in sink.Rows)
 			{
 				string tempIsosFolder = row[folder].ToString();
@@ -103,54 +262,23 @@ namespace InterDetect
 
 				}
 			}
-			if (isosPaths.Count != filepaths.Count)
-			{
-				return false;
-			}
-
-			//Calculate the needed info and generate a temporary file, keep adding each dataset to this file
-			string tempPrecFile = Path.Combine(datapath, "prec_info_temp.txt");
-			foreach (string files in filepaths.Keys)
-			{
-				if (!isosPaths.ContainsKey(files))
-				{
-					if (File.Exists(tempPrecFile))
-					{
-						File.Delete(tempPrecFile);
-						return false;
-					}
-				}
-				List<PrecursorInfoTest> myInfo = ParentInfoPass2(filepaths[files], isosPaths[files]);
-				if (myInfo == null)
-				{
-					Console.WriteLine(filepaths[files] + " failed to load.  Deleting temp and aborting!");
-					if (File.Exists(tempPrecFile))
-					{
-						File.Delete(tempPrecFile);
-					}
-					return false;
-				}
-				PrintInterference(myInfo, files, tempPrecFile);
-				Console.WriteLine("Iteration Complete");
-			}
-
-			//Create a delimeted file reader and write a new table with this info to database
-			DelimitedFileReader delimreader = new DelimitedFileReader();
-			delimreader.FilePath = Path.Combine(datapath, tempfile);
-
-			SQLiteWriter writer = new SQLiteWriter();
-			string tableName = "t_precursor_interference";
-			writer.DbPath = Path.Combine(datapath, "Results.db3");
-			writer.TableName = tableName;
-
-			ProcessingPipeline.Assemble("ImportToSQLite", delimreader, writer).RunRoot(null);
-
-
-			//cleanup
-			File.Delete(Path.Combine(datapath, tempfile));
 
 			return true;
+		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="progress">Progress percent complete (value between 0 and 100)</param>
+		protected void OnProgressChanged(float progress)
+		{
+
+			if (ProgressChanged != null)
+			{
+				ProgressInfo e = new ProgressInfo();
+				e.Value = progress;
+				ProgressChanged(this, e);
+			}
 		}
 
 		[Test]
@@ -176,10 +304,12 @@ namespace InterDetect
             @"\\proto-9\VOrbiETD02\2012_2\Sample_5065_iTRAQ\Sample_5065_iTRAQ.raw",
             @"\\proto-9\VOrbiETD02\2012_2\Sample_4050_iTRAQ_120330102958\Sample_4050_iTRAQ_120330102958.raw"};
 
-			for (int i = 0; i < 1; i++)
+			int filesToProcess = 1;
+
+			for (int i = 0; i < filesToProcess; i++)
 			{
 
-				List<PrecursorInfoTest> myInfo = ParentInfoPass2(rawfiles[i], decon[i]);
+				List<PrecursorInfoTest> myInfo = ParentInfoPass2(i + 1, filesToProcess, rawfiles[i], decon[i]);
 				if (myInfo == null)
 				{
 					Console.WriteLine(rawfiles[i] + " failed to load.  Deleting temp and aborting!");
@@ -205,7 +335,7 @@ namespace InterDetect
 		/// <param name="rawfile"></param>
 		/// <param name="isosfile"></param>
 		/// <returns>Provides a precursor info list</returns>
-		public static List<PrecursorInfo> ParentInfoPass(string rawfile, string isosfile)
+		public List<PrecursorInfo> ParentInfoPass(string rawfile, string isosfile)
 		{
 			bool worked;
 			XRawFileIO myRaw = new XRawFileIO();
@@ -213,7 +343,7 @@ namespace InterDetect
 			worked = myRaw.OpenRawFile(rawfile);
 			if (!worked)
 			{
-				Console.WriteLine("File failed to open");
+				Console.WriteLine("File failed to open .Raw file in ParentInfoPass: " + rawfile);
 				return null;
 			}
 
@@ -231,7 +361,9 @@ namespace InterDetect
 			{
 				if (i / (double)numSpectra > sr)
 				{
-					Console.WriteLine(sr * 100.0 + "% completed");
+					if (sr > 0)
+						Console.WriteLine("  " + sr * 100.0 + "% complete");
+
 					sr += .10;
 				}
 
@@ -295,7 +427,7 @@ namespace InterDetect
 		}
 
 
-		public static List<PrecursorInfoTest> ParentInfoPass2(string rawfile, string isosfile)
+		public List<PrecursorInfoTest> ParentInfoPass2(int fileCountCurrent, int fileCountTotal, string rawfile, string isosfile)
 		{
 			bool worked;
 			XRawFileIO myRaw = new XRawFileIO();
@@ -303,47 +435,61 @@ namespace InterDetect
 			worked = myRaw.OpenRawFile(rawfile);
 			if (!worked)
 			{
-				Console.WriteLine("File failed to open");
-				return null;
+				throw new Exception("File failed to open .Raw file in ParentInfoPass2: " + rawfile);
 			}
 
 
 			IsosHandler isos = new IsosHandler(isosfile);
 
-
 			List<PrecursorInfoTest> preInfo = new List<PrecursorInfoTest>();
 			int numSpectra = myRaw.GetNumScans();
+
+			List<string> lstScanEventNames = new List<string>();
+			
 			//TODO: Add error code for 0 spectra
 			int currPrecScan = 0;
 			//Go into each scan and collect precursor info.
 			double sr = 0.0;
-			for (int i = 1; i <= numSpectra; i++)
+			for (int scanNumber = 1; scanNumber <= numSpectra; scanNumber++)
 			{
-				if (i / (double)numSpectra > sr)
+				if (scanNumber / (double)numSpectra > sr)
 				{
-					Console.WriteLine(sr * 100.0 + "% completed");
+					if (sr > 0)
+						Console.WriteLine("  " + sr * 100 + "% completed");
+
+					float percentCompleteOverall = (fileCountCurrent - 1) / (float)fileCountTotal + (float)sr / (float)fileCountTotal;
+					OnProgressChanged(percentCompleteOverall * 100);
+
 					sr += .10;
 				}
 
 				int msorder = 2;
-				if (isos.IsParentScan(i))
+				if (isos.IsParentScan(scanNumber))
 					msorder = 1;
 
 				FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo = new FinniganFileReaderBaseClass.udtScanHeaderInfoType();
 
 
-				myRaw.GetScanInfo(i, out scanInfo);
+				myRaw.GetScanInfo(scanNumber, out scanInfo);
 				//      double premass = 0;
 				//      premass = scanInfo.ParentIonMZ;
 				//      XRawFileIO.GetScanTypeNameFromFinniganScanFilterText(scanInfo.FilterText, ref premass);
 
 				if (msorder > 1)
 				{
-					int chargeState = Convert.ToInt32(scanInfo.ScanEventValues[11]);
+					ScanEventIndicesType scanEventIndices;
+					string errorMessage;
+					if (!ParseScanEventNames(scanInfo, out scanEventIndices, out errorMessage))
+					{
+						Console.WriteLine("Skipping scan " + scanNumber + " since " + errorMessage);
+						continue;
+					}
+
+					int chargeState = Convert.ToInt32(scanInfo.ScanEventValues[scanEventIndices.chargeState]);
 					double mz;
 					if (scanInfo.ParentIonMZ == 0.0)
 					{
-						mz = Convert.ToDouble(scanInfo.ScanEventValues[12]);
+						mz = Convert.ToDouble(scanInfo.ScanEventValues[scanEventIndices.mz]);
 					}
 					else
 					{
@@ -353,18 +499,19 @@ namespace InterDetect
 					//{
 					//    mz = premass;
 					//}
-					double isolationWidth = Convert.ToDouble(scanInfo.ScanEventValues[13]);
+					double isolationWidth = Convert.ToDouble(scanInfo.ScanEventValues[scanEventIndices.isolationWidth]);
 					if (chargeState == 0)
 					{
 						if (!isos.GetChargeState(currPrecScan, mz, ref chargeState))
 						{
+							// Unable to determine the charge state; skip this scan							
 							continue;
 						}
 					}
 
 					PrecursorInfoTest info = new PrecursorInfoTest();
 					info.dIsoloationMass = mz;
-					info.nScanNumber = i;
+					info.nScanNumber = scanNumber;
 					info.preScanNumber = currPrecScan;
 					info.nChargeState = chargeState;
 					info.isolationwidth = isolationWidth;
@@ -376,12 +523,49 @@ namespace InterDetect
 				}
 				else if (msorder == 1)
 				{
-					currPrecScan = i;
+					currPrecScan = scanNumber;
 				}
 
 			}
 			myRaw.CloseRawFile();
 			return preInfo;
+		}
+
+		private bool ParseScanEventNames(FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo, out ScanEventIndicesType scanEventIndices, out string errorMessage)
+		{
+			scanEventIndices = new ScanEventIndicesType();
+			errorMessage = string.Empty;
+
+			Dictionary<string, int> dctScanEventNames = new Dictionary<string, int>(StringComparer.CurrentCultureIgnoreCase);
+
+			for (int i = 0; i < scanInfo.ScanEventNames.Length; i++)
+			{
+				dctScanEventNames.Add(scanInfo.ScanEventNames[i].TrimEnd(new char[] { ':', ' ' }), i);
+			}
+
+			if (!ParseScanEventNameLookupIndex(dctScanEventNames, "Charge State", out scanEventIndices.chargeState, out errorMessage))
+				return false;
+
+			if (!ParseScanEventNameLookupIndex(dctScanEventNames, "Monoisotopic M/Z", out scanEventIndices.mz, out errorMessage))
+				return false;
+
+			if (!ParseScanEventNameLookupIndex(dctScanEventNames, "MS2 Isolation Width", out scanEventIndices.isolationWidth, out errorMessage))
+				return false;
+
+			return true;
+		}
+
+		protected bool ParseScanEventNameLookupIndex(Dictionary<string, int> dctScanEventNames, string scanEventName, out int scanEventIndex, out string errorMessage)
+		{
+			errorMessage = string.Empty;
+
+			if (!dctScanEventNames.TryGetValue(scanEventName, out scanEventIndex))
+			{
+				errorMessage = "Scan event '" + scanEventName + "' not found";
+				return false;
+			}
+
+			return true;
 		}
 
 		/// <summary>
@@ -412,10 +596,10 @@ namespace InterDetect
 
 		private void PrintInterference(List<PrecursorInfoTest> preinfo, string datasetID, string filepath)
 		{
-			bool fieldExistance = File.Exists(filepath);
-			using (StreamWriter sw = new StreamWriter(filepath, fieldExistance))
+			bool writeHeaderLine = !File.Exists(filepath);
+			using (StreamWriter sw = new StreamWriter(new System.IO.FileStream(filepath,FileMode.Append, FileAccess.Write, FileShare.Read)))
 			{
-				if (!fieldExistance)
+				if (writeHeaderLine)
 				{
 					sw.Write("Dataset_ID\tScanNumber\tPrecursorScan\tParentMZ\tChargeState\tIsoWidth\tInterference\n");
 				}
@@ -453,7 +637,7 @@ namespace InterDetect
 		/// </summary>
 		/// <param name="preInfo"></param>
 		/// <param name="isos"></param>
-		private static void Interference(ref PrecursorInfo preInfo, IsosHandler isos)
+		private void Interference(ref PrecursorInfo preInfo, IsosHandler isos)
 		{
 
 			const double C12_C13_MASS_DIFFERENCE = 1.0033548378;
@@ -496,7 +680,7 @@ namespace InterDetect
 		/// </summary>
 		/// <param name="preInfo"></param>
 		/// <param name="isos"></param>
-		private static void Interference(ref PrecursorInfo preInfo, ref XRawFileIO raw, ref FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo)
+		private void Interference(ref PrecursorInfo preInfo, ref XRawFileIO raw, ref FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo)
 		{
 			double[] mzlist = null;
 			double[] abulist = null;
@@ -573,7 +757,7 @@ namespace InterDetect
 			//DatasetPrep.Utilities.WriteDataTableToText(dt, fhtFile.Substring(0, fhtFile.Length - 4) + "_int.txt");
 		}
 
-		private static void Interference2(ref PrecursorInfoTest preInfo, ref XRawFileIO raw, ref FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo)
+		private void Interference2(ref PrecursorInfoTest preInfo, ref XRawFileIO raw, ref FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo)
 		{
 			double[] mzlist = null;
 			double[] abulist = null;
@@ -662,7 +846,7 @@ namespace InterDetect
 			//DatasetPrep.Utilities.WriteDataTableToText(dt, fhtFile.Substring(0, fhtFile.Length - 4) + "_int.txt");
 		}
 
-		private static List<Peak> ConvertToPeaks(ref double[] mzlist, ref double[] abulist, int lowind, int highind)
+		private List<Peak> ConvertToPeaks(ref double[] mzlist, ref double[] abulist, int lowind, int highind)
 		{
 
 			List<Peak> mzs = new List<Peak>();

@@ -11,7 +11,6 @@ namespace InterDetect
     public class IsosHandler
     {
 
-        static protected int count;
         private DataTable dt;
         SortedDictionary<int, List<DataRow>> parentScans;
 

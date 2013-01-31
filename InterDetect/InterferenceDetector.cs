@@ -283,17 +283,6 @@ namespace InterDetect
 			}
 		}
 
-		[Test]
-		public void TestParentInfoPass1()
-		{
-			//    GetParentInfo parentInfo = new GetParentInfoSequest(@"\\proto-9\VOrbiETD03\2011_4\E_ligno_SCF1_LX_pool_01_01Oct11_Lynx_11-09-28\Seq201111091803_Auto765070\E_ligno_SCF1_LX_pool_01_01Oct11_Lynx_11-09-28_fht.txt");
-			List<PrecursorInfo> myInfo = ParentInfoPass(@"\\proto-9\VOrbiETD03\2012_1\Isobaric_iTRAQ8_5ug_Run1_10Jan12_Cougar_11-10-09\Isobaric_iTRAQ8_5ug_Run1_10Jan12_Cougar_11-10-09.raw",
-				@"\\proto-9\VOrbiETD03\2012_1\Isobaric_iTRAQ8_5ug_Run1_10Jan12_Cougar_11-10-09\DLS201201111344_Auto783501\Isobaric_iTRAQ8_5ug_Run1_10Jan12_Cougar_11-10-09_isos.csv");
-
-			//         PrintInterference(myInfo, @"C:\Users\aldr699\Documents\2012\InterferenceTesting\here2.txt");
-
-
-		}
 
 
 		[Test]
@@ -331,36 +320,7 @@ namespace InterDetect
 			//PrintInterference(myInfo, @"C:\Users\aldr699\Documents\2012\InterferenceTesting\here2.txt");
 		}
 
-		/// <summary>
-		/// Collects the parent ion information as well as inteference 
-		/// This function has been superseded by ParentInfoPass2
-		/// </summary>
-		/// <param name="rawfile">Path to the the .Raw file</param>
-		/// <param name="isosfile">Path to the .Isos file</param>
-		/// <returns>Precursor info list</returns>
-		public List<PrecursorInfo> ParentInfoPass(string rawfile, string isosfile)
-		{
-			List<PrecursorInfoTest> lstResults;
-			lstResults = ParentInfoPassWork(1, 1, rawfile, isosfile, Interference);
 
-			// Copy the data from lstResults to preInfo
-			List<PrecursorInfo> preInfo = new List<PrecursorInfo>();
-			
-			foreach (PrecursorInfoTest oItem in lstResults)
-			{
-				PrecursorInfo oNewItem = new PrecursorInfo();
-				oNewItem.dIsoloationMass = oItem.dIsoloationMass;
-				oNewItem.nChargeState = oItem.nChargeState;
-				oNewItem.nScanNumber = oItem.nScanNumber;
-				oNewItem.preScanNumber = oItem.preScanNumber;
-				oNewItem.isolationwidth = oItem.isolationwidth;
-				oNewItem.interference = oItem.interference;
-
-				preInfo.Add(oNewItem);
-			}
-
-			return preInfo;
-		}
 
 		/// <summary>
 		/// Collects the parent ion information as well as inteference 

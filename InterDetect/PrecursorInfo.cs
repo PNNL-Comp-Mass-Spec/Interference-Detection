@@ -20,4 +20,11 @@ namespace InterDetect
     {
         public double dActualMass;
     }
+
+    public class PrecursorIntense : PrecursorInfoTest
+    {
+        public double dPrecursorIntensity;
+        public double ionCollectionTime;
+    }
+
 }

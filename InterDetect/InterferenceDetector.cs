@@ -42,8 +42,6 @@ namespace InterDetect
 		public event ProgressChangedHandler ProgressChanged;
 		public delegate void ProgressChangedHandler(InterferenceDetector id, ProgressInfo e);
 
-		protected delegate void InterferenceDelegate(ref PrecursorIntense preInfo, ref XRawFileIO raw, ref FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo);
-
 		[Test]
 		public void DatabaseCheck()
 		{
@@ -333,21 +331,6 @@ namespace InterDetect
 		/// <returns>Precursor info list</returns>
 		public List<PrecursorIntense> ParentInfoPass(int fileCountCurrent, int fileCountTotal, string rawfile, string isosfile)
 		{
-			return ParentInfoPassWork(fileCountCurrent, fileCountTotal, rawfile, isosfile, Interference);
-		}
-
-
-		/// <summary>
-		/// Collects the parent ion information as well as inteference 
-		/// </summary>
-		/// <param name="fileCountCurrent">Rank order of the current dataset being processed</param>
-		/// <param name="fileCountTotal">Total number of dataset files to process</param>
-		/// <param name="rawfile">Path to the the .Raw file</param>
-		/// <param name="isosfile">Path to the .Isos file</param>
-		/// <param name="delegInterference">Function name to use for Interference Detection (either Interference or Interference2)</param>
-		/// <returns>Precursor info list</returns>
-		protected List<PrecursorIntense> ParentInfoPassWork(int fileCountCurrent, int fileCountTotal, string rawfile, string isosfile, InterferenceDelegate delegInterference)
-		{
 			bool worked;
 			XRawFileIO myRaw = new XRawFileIO();
 
@@ -427,7 +410,7 @@ namespace InterDetect
 					info.nChargeState = chargeState;
 					info.isolationwidth = isolationWidth;
                     info.ionCollectionTime = Convert.ToDouble(scanInfo.ScanEventValues[scanEventIndices.agctime]);
-					delegInterference(ref info, ref myRaw, ref scanInfo);
+					Interference(ref info, ref myRaw, ref scanInfo);
 					preInfo.Add(info);
 
 
@@ -536,8 +519,10 @@ namespace InterDetect
 
             //remove peaks lying outside of range
             OutsideOfIsoWindow(low, high, ref peaks);
+
             //find target peak for use as precursor to find interference
             ClosestToTarget(preInfo, peaks);
+
             //perform the calculation
             InterferenceCalculation(preInfo, lowind, highind, peaks);
 		}

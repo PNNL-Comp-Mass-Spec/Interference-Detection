@@ -136,6 +136,39 @@ namespace InterDetect
 
 		}
 
+        public bool GUI_PerformWork(string outpath, string filepath, string isosPath)
+        {
+            string errorMessage = string.Empty;
+
+			//Calculate the needed info and generate a temporary file, keep adding each dataset to this file
+			string tempPrecFilePath = outpath;
+
+			Console.WriteLine("Processing file: " + Path.GetFileName(filepath));
+            List<PrecursorIntense> myInfo = null;
+            try
+            {
+                myInfo = ParentInfoPass(1, 1, filepath, isosPath);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+
+			if (myInfo == null)
+			{
+				DeleteFile(tempPrecFilePath);
+				Console.WriteLine("Error in PerformWork: ParentInfoPass returned null loading " + filepath);
+                return false;
+			}
+
+			PrintInterference(myInfo, "000000", tempPrecFilePath);
+
+			Console.WriteLine("Process Complete");
+            return true;
+	    }
+
+        
+
 		private bool PerformWork(System.IO.FileInfo fiDatabaseFile, Dictionary<string, string> filepaths, Dictionary<string, string> isosPaths)
 		{
 			string errorMessage = string.Empty;

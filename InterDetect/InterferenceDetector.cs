@@ -119,7 +119,7 @@ namespace InterDetect
 			
 			if (isosPaths.Count != filepaths.Count)
 			{
-				throw new Exception("Error in InterferenceDetector.Run: isosPaths.count <> filePaths.count");
+				throw new Exception("Error in InterferenceDetector.Run: isosPaths.count <> filePaths.count (" + isosPaths.Count + " vs. " + filepaths.Count + ")");
 			}
 
 			try

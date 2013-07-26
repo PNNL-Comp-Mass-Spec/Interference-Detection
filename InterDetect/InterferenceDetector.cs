@@ -255,7 +255,10 @@ namespace InterDetect
 			filepaths = new Dictionary<string, string>();
 			foreach (object[] row in sink.Rows)
 			{
-				filepaths.Add(row[datasetIDIdx].ToString(), Path.Combine(row[folderPathIdx].ToString(), row[datasetIdx].ToString() + raw_ext));
+				// Some dataset folders might have multiple .raw files (one starting with x_ and another the real one)
+				// This could lead to duplicate key errors when trying to add a new entry in filepaths
+				if (!filepaths.ContainsKey(row[datasetIDIdx].ToString()))
+					filepaths.Add(row[datasetIDIdx].ToString(), Path.Combine(row[folderPathIdx].ToString(), row[datasetIdx].ToString() + raw_ext));
 			}
 			if (filepaths.Count == 0)
 			{

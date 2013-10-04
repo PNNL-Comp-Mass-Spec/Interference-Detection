@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.IO;
 using System.Data;
 
@@ -11,7 +10,7 @@ namespace InterDetect
     public class IsosHandler
     {
 
-        private DataTable dt;
+        private readonly DataTable dt;
         SortedDictionary<int, List<DataRow>> parentScans;
 
 
@@ -74,13 +73,12 @@ namespace InterDetect
             //change this to questioning a SortedDictionary<int, List<int>>();
             DataRow[] foundRows = dt.Select("[scan_num]='" + scan + "' AND [mz] > '" + low +
                 "' AND [mz] < '" + high + "'");
-            double[,] data = null;
 
-            int count = foundRows.Length;
+	        int count = foundRows.Length;
 
             if (count > 0)
             {
-                data = new double[2, count];
+                var data = new double[2, count];
                 for (int i = 0; i < count; i++)
                 {
                     data[0, i] = (double)foundRows[i]["mz"];
@@ -112,12 +110,11 @@ namespace InterDetect
                                           parent.Field<double>("mz") < high
                                           select parent).ToArray();
 
-            double[,] data = null;
-            int count = foundRows.Length;
+	        int count = foundRows.Length;
 
             if (count > 0)
             {
-                data = new double[2, count];
+                var data = new double[2, count];
                 for (int i = 0; i < count; i++)
                 {
                     data[0, i] = (double)foundRows[i]["mz"];
@@ -137,10 +134,10 @@ namespace InterDetect
             parentScans = new SortedDictionary<int, List<DataRow>>();   
             foreach (DataRow row in dt.Rows)
             {
-                int scan = (int)row["scan_num"];
+                var scan = (int)row["scan_num"];
                 if (!parentScans.ContainsKey(scan))
                 {
-                    parentScans.Add(scan, new List<DataRow>() { row });
+                    parentScans.Add(scan, new List<DataRow> { row });
                 }
                 else
                 {
@@ -157,7 +154,7 @@ namespace InterDetect
         /// <param name="filePath"></param>
         public static void WriteDataTableToText(DataTable dt, string filePath)
         {
-            using (StreamWriter sw = new StreamWriter(filePath))
+            using (var sw = new StreamWriter(filePath))
             {
                 string s = dt.Columns[0].ColumnName;
                 for (int i = 1; i < dt.Columns.Count; i++)
@@ -166,8 +163,7 @@ namespace InterDetect
                 }
                 sw.WriteLine(s);
 
-                s = string.Empty;
-                foreach (DataRow row in dt.Rows)
+	            foreach (DataRow row in dt.Rows)
                 {
                     s = "" + row[0];
                     for (int i = 1; i < dt.Columns.Count; i++)
@@ -175,7 +171,6 @@ namespace InterDetect
                         s += "\t" + row[i];
                     }
                     sw.WriteLine(s);
-                    s = string.Empty;
                 }
 
 
@@ -189,18 +184,18 @@ namespace InterDetect
         /// <returns></returns>
         public static DataTable TextFileToData(string fileName)
         {
-            string line = "";
-            string[] fields = null;
-            DataTable dt = new DataTable();
+	        var dt = new DataTable();
             try
             {
-                using (System.IO.StreamReader sr = new System.IO.StreamReader(fileName))
+                using (var sr = new StreamReader(fileName))
                 {
                     // first line has headers   
-                    List<int> myFields = new List<int>();
-                    if ((line = sr.ReadLine()) != null)
+                    var myFields = new List<int>();
+	                string line;
+	                string[] fields;
+	                if ((line = sr.ReadLine()) != null)
                     {
-                        fields = line.Split(new char[] { '\t', ',' });
+                        fields = line.Split(new[] { '\t', ',' });
 
                         int mycount = 0;
                         foreach (string s in fields)
@@ -234,7 +229,7 @@ namespace InterDetect
                     {
                         DataRow row = dt.NewRow();
 
-                        fields = line.Split(new char[] { '\t', ',' });
+                        fields = line.Split(new[] { '\t', ',' });
                         int i = 0;
                         foreach (int s in myFields)
                         {

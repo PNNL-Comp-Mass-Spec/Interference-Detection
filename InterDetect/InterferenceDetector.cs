@@ -1,14 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Data;
 using NUnit.Framework;
 using System.IO;
 using Mage;
-using System.Data.SQLite;
-using ThermoRawFileReaderDLL;
-using log4net;
 using ThermoRawFileReaderDLL.FinniganFileIO;
 
 namespace InterDetect
@@ -76,24 +71,26 @@ namespace InterDetect
 			Dictionary<string, string> filepaths;
 
 			Dictionary<string, string> isosPaths;
-			bool success = false;
+			bool success;
 			
-			System.IO.DirectoryInfo diDataFolder = new System.IO.DirectoryInfo(databaseFolderPath);
+			var diDataFolder = new DirectoryInfo(databaseFolderPath);
 			if (!diDataFolder.Exists)
-				throw new System.IO.DirectoryNotFoundException("Database folder not found: " + databaseFolderPath);
+				throw new DirectoryNotFoundException("Database folder not found: " + databaseFolderPath);
 
 
-			System.IO.FileInfo fiDatabaseFile = new System.IO.FileInfo(System.IO.Path.Combine(diDataFolder.FullName, databaseFileName));
+			var fiDatabaseFile = new FileInfo(Path.Combine(diDataFolder.FullName, databaseFileName));
 			if (!fiDatabaseFile.Exists)
-				throw new System.IO.FileNotFoundException("Database not found: " + fiDatabaseFile.FullName);
+				throw new FileNotFoundException("Database not found: " + fiDatabaseFile.FullName);
 
 			// build Mage pipeline to read contents of 
 			// a table in a SQLite database into a data buffer
 
 			// first, make the Mage SQLite reader module
 			// and configure it to read the table
-			SQLiteReader reader = new SQLiteReader();
-			reader.Database = fiDatabaseFile.FullName;
+			var reader = new SQLiteReader
+			{
+				Database = fiDatabaseFile.FullName
+			};
 
 			try
 			{
@@ -124,7 +121,7 @@ namespace InterDetect
 
 			try
 			{
-				success = PerformWork(fiDatabaseFile, filepaths, isosPaths);
+				PerformWork(fiDatabaseFile, filepaths, isosPaths);
 			}
 			catch (Exception ex)
 			{
@@ -138,9 +135,7 @@ namespace InterDetect
 
         public bool GUI_PerformWork(string outpath, string filepath, string isosPath)
         {
-            string errorMessage = string.Empty;
-
-			//Calculate the needed info and generate a temporary file, keep adding each dataset to this file
+	        //Calculate the needed info and generate a temporary file, keep adding each dataset to this file
 			string tempPrecFilePath = outpath;
 
 			Console.WriteLine("Processing file: " + Path.GetFileName(filepath));
@@ -169,9 +164,8 @@ namespace InterDetect
 
         
 
-		private bool PerformWork(System.IO.FileInfo fiDatabaseFile, Dictionary<string, string> filepaths, Dictionary<string, string> isosPaths)
+		private bool PerformWork(FileInfo fiDatabaseFile, Dictionary<string, string> filepaths, Dictionary<string, string> isosPaths)
 		{
-			string errorMessage = string.Empty;
 			int fileCountCurrent = 0;
 
 			//Calculate the needed info and generate a temporary file, keep adding each dataset to this file
@@ -202,12 +196,14 @@ namespace InterDetect
 
 			try
 			{
-				//Create a delimeted file reader and write a new table with this info to database
-				DelimitedFileReader delimreader = new DelimitedFileReader();
-				delimreader.FilePath = tempPrecFilePath;
+				//Create a delimited file reader and write a new table with this info to database
+				var delimreader = new DelimitedFileReader
+				{
+					FilePath = tempPrecFilePath
+				};
 
-				SQLiteWriter writer = new SQLiteWriter();
-				string tableName = "t_precursor_interference";
+				var writer = new SQLiteWriter();
+				const string tableName = "t_precursor_interference";
 				writer.DbPath = fiDatabaseFile.FullName;
 				writer.TableName = tableName;
 
@@ -231,6 +227,7 @@ namespace InterDetect
 				if (File.Exists(filePath))
 					File.Delete(filePath);
 			}
+			// ReSharper disable once EmptyGeneralCatchClause
 			catch
 			{
 				// Ignore errors here
@@ -242,7 +239,7 @@ namespace InterDetect
 			reader.SQLText = "SELECT * FROM t_msms_raw_files;";
 
 			// Make a Mage sink module (simple row buffer)
-			SimpleSink sink = new SimpleSink();
+			var sink = new SimpleSink();
 
 			// construct and run the Mage pipeline to obtain data from t_msms_raw_files
 			ProcessingPipeline.Assemble("Test_Pipeline", reader, sink).RunRoot(null);
@@ -253,12 +250,12 @@ namespace InterDetect
 			int datasetIDIdx = sink.ColumnIndex["Dataset_ID"];
 			int datasetIdx = sink.ColumnIndex["Dataset"];
 			filepaths = new Dictionary<string, string>();
-			foreach (object[] row in sink.Rows)
+			foreach (string[] row in sink.Rows)
 			{
 				// Some dataset folders might have multiple .raw files (one starting with x_ and another the real one)
 				// This could lead to duplicate key errors when trying to add a new entry in filepaths
-				if (!filepaths.ContainsKey(row[datasetIDIdx].ToString()))
-					filepaths.Add(row[datasetIDIdx].ToString(), Path.Combine(row[folderPathIdx].ToString(), row[datasetIdx].ToString() + raw_ext));
+				if (!filepaths.ContainsKey(row[datasetIDIdx]))
+					filepaths.Add(row[datasetIDIdx], Path.Combine(row[folderPathIdx], row[datasetIdx] + raw_ext));
 			}
 			if (filepaths.Count == 0)
 			{
@@ -272,7 +269,7 @@ namespace InterDetect
 		private bool LookupDeconToolsInfo(SQLiteReader reader, out Dictionary<string, string> isosPaths)
 		{
 			// Make a Mage sink module (simple row buffer)
-			SimpleSink sink = new SimpleSink();
+			var sink = new SimpleSink();
 
 			//Add rows from other table
 			reader.SQLText = "SELECT * FROM t_results_metadata WHERE t_results_metadata.Tool Like 'Decon%'";
@@ -286,15 +283,15 @@ namespace InterDetect
 			isosPaths = new Dictionary<string, string>();
 
 			//store the paths indexed by datasetID in isosPaths
-			foreach (object[] row in sink.Rows)
+			foreach (string[] row in sink.Rows)
 			{
-				string tempIsosFolder = row[folder].ToString();
+				string tempIsosFolder = row[folder];
 				if (Directory.Exists(tempIsosFolder))
 				{
 					string[] isosFileCandidate = Directory.GetFiles(tempIsosFolder);
 					if (isosFileCandidate.Length != 0 && File.Exists(isosFileCandidate[0]))
 					{
-						isosPaths.Add(row[datasetID].ToString(), Path.Combine(row[folder].ToString(), row[dataset].ToString() + isos_ext));
+						isosPaths.Add(row[datasetID], Path.Combine(row[folder], row[dataset] + isos_ext));
 					}
 
 				}
@@ -312,8 +309,10 @@ namespace InterDetect
 
 			if (ProgressChanged != null)
 			{
-				ProgressInfo e = new ProgressInfo();
-				e.Value = progress;
+				var e = new ProgressInfo
+				{
+					Value = progress
+				};
 				ProgressChanged(this, e);
 			}
 		}
@@ -367,22 +366,20 @@ namespace InterDetect
 		/// <returns>Precursor info list</returns>
 		public List<PrecursorIntense> ParentInfoPass(int fileCountCurrent, int fileCountTotal, string rawfile, string isosfile)
 		{
-			bool worked;
-			XRawFileIO myRaw = new XRawFileIO();
+			var myRaw = new XRawFileIO();
 
-			worked = myRaw.OpenRawFile(rawfile);
+			bool worked = myRaw.OpenRawFile(rawfile);
 			if (!worked)
 			{
 				throw new Exception("File failed to open .Raw file in ParentInfoPass: " + rawfile);
 			}
 
+			var isos = new IsosHandler(isosfile);
 
-			IsosHandler isos = new IsosHandler(isosfile);
-
-			List<PrecursorIntense> preInfo = new List<PrecursorIntense>();
+			var preInfo = new List<PrecursorIntense>();
 			int numSpectra = myRaw.GetNumScans();
 
-			List<string> lstScanEventNames = new List<string>();
+			var lstScanEventNames = new List<string>();
 			
 			//TODO: Add error code for 0 spectra
 			int currPrecScan = 0;
@@ -405,7 +402,7 @@ namespace InterDetect
 				if (isos.IsParentScan(scanNumber))
 					msorder = 1;
 
-				FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo = new FinniganFileReaderBaseClass.udtScanHeaderInfoType();
+				var scanInfo = new FinniganFileReaderBaseClass.udtScanHeaderInfoType();
 				myRaw.GetScanInfo(scanNumber, out scanInfo);
 
 
@@ -421,7 +418,7 @@ namespace InterDetect
 
 					int chargeState = Convert.ToInt32(scanInfo.ScanEventValues[scanEventIndices.chargeState]);
 					double mz;
-					if (scanInfo.ParentIonMZ == 0.0)
+					if (Math.Abs(scanInfo.ParentIonMZ) < 1e-6)
 					{
 						mz = Convert.ToDouble(scanInfo.ScanEventValues[scanEventIndices.mz]);
 					}
@@ -439,7 +436,7 @@ namespace InterDetect
 						}
 					}
 
-					PrecursorIntense info = new PrecursorIntense();
+					var info = new PrecursorIntense();
 					info.dIsoloationMass = mz;
 					info.nScanNumber = scanNumber;
 					info.preScanNumber = currPrecScan;
@@ -466,7 +463,7 @@ namespace InterDetect
 			scanEventIndices = new ScanEventIndicesType();
 			errorMessage = string.Empty;
 
-			Dictionary<string, int> dctScanEventNames = new Dictionary<string, int>(StringComparer.CurrentCultureIgnoreCase);
+			var dctScanEventNames = new Dictionary<string, int>(StringComparer.CurrentCultureIgnoreCase);
 
 			for (int i = 0; i < scanInfo.ScanEventNames.Length; i++)
 			{
@@ -574,7 +571,7 @@ namespace InterDetect
         private static void InterferenceCalculation(PrecursorIntense preInfo, int lowind, int highind, List<Peak> peaks)
         {
             const double C12_C13_MASS_DIFFERENCE = 1.0033548378;
-            double PreErrorAllowed = 10.0;
+            const double PreErrorAllowed = 10.0;
             double MaxPreInt = 0;
             double MaxInterfereInt = 0;
             //  int p = peaks.GetUpperBound(1);
@@ -610,7 +607,7 @@ namespace InterDetect
 		private List<Peak> ConvertToPeaks(ref double[] mzlist, ref double[] abulist, int lowind, int highind)
 		{
 
-			List<Peak> mzs = new List<Peak>();
+			var mzs = new List<Peak>();
 
 			for (int i = lowind + 1; i <= highind - 1; i++)
 			{
@@ -643,7 +640,7 @@ namespace InterDetect
 						peaksum += abulist[i] / abusum * mzlist[i];
 						i++;
 					}
-					Peak centroidPeak = new Peak();
+					var centroidPeak = new Peak();
 					centroidPeak.mz = peaksum;
 					centroidPeak.abundance = peakmax;//abusum;
 					mzs.Add(centroidPeak);
@@ -657,11 +654,9 @@ namespace InterDetect
 
         private static int BinarySearch(ref double[] mzlist, int a, int b, int c, double mzToFind)
         {
-            int n = 0;
-            int nmax = 100;
-            double tol = 0.1;
+            const double tol = 0.1;
 
-            while (n < nmax)
+            while (true)
             {
                 if (Math.Abs(mzlist[c] - mzToFind) < tol || c == (b + a) / 2)
                 {
@@ -689,7 +684,7 @@ namespace InterDetect
         /// </summary>
         /// <param name="preInfo"></param>
         /// <param name="peaks"></param>
-        private static void ClosestToTarget(PrecursorIntense preInfo, List<Peak> peaks)
+        private static void ClosestToTarget(PrecursorIntense preInfo, IEnumerable<Peak> peaks)
         {
             double closest = 1000.0;
             foreach (Peak p in peaks)

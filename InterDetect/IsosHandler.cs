@@ -45,15 +45,15 @@ namespace InterDetect
                 return false;
             }
 
-			IsosData isosMatch = (from parent in mParentScans[scan].AsEnumerable()
-                                  where parent.Mz > mz - 0.005 &&
-                                        parent.Mz < mz + 0.005
-                                  select parent).First();
+			var isosMatch = (from parent in mParentScans[scan].AsEnumerable()
+                             where parent.Mz > mz - 0.005 &&
+                                   parent.Mz < mz + 0.005
+                             select parent).ToList();
 
 
-			if (isosMatch != null)
+			if (isosMatch.Count > 0)
             {
-				charge = isosMatch.Charge;
+				charge = isosMatch.First().Charge;
             }
 
             return (charge != 0);

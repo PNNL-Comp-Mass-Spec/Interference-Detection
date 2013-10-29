@@ -630,7 +630,7 @@ namespace InterDetect
             ClosestToTarget(precursorInfo, peaks);
 
             //perform the calculation
-			InterferenceCalculation(precursorInfo, lowInd, highInd, peaks);
+			InterferenceCalculation(precursorInfo, peaks);
 		}
 
 
@@ -641,7 +641,7 @@ namespace InterDetect
         /// <param name="lowind"></param>
         /// <param name="highind"></param>
         /// <param name="peaks"></param>
-		private void InterferenceCalculation(PrecursorIntense precursorInfo, int lowind, int highind, List<Peak> peaks)
+		private void InterferenceCalculation(PrecursorIntense precursorInfo, List<Peak> peaks)
         {
             const double C12_C13_MASS_DIFFERENCE = 1.0033548378;
             const double PreErrorAllowed = 10.0;
@@ -649,7 +649,7 @@ namespace InterDetect
             double MaxInterfereInt = 0;            
             double OverallInterference = 0;
 
-            if (lowind != -1 && highind != -1)
+			if (peaks.Count > 0)
             {
                 for (int j = 0; j < peaks.Count; j++)
                 {
@@ -671,7 +671,7 @@ namespace InterDetect
             }
             else
             {
-                Console.WriteLine("Did not find the precursor");
+				Console.WriteLine("Did not find the precursor for " + precursorInfo.dIsoloationMass + " in scan " + precursorInfo.nScanNumber);
             }
 
 			precursorInfo.interference = OverallInterference;
@@ -781,6 +781,7 @@ namespace InterDetect
             var peaksFiltered = from peak in peaks
 							where peak.mz < highMz
 							&& peak.mz > lowMz
+							orderby peak.mz
                             select peak;
 
 			return peaksFiltered.ToList();

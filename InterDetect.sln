@@ -1,29 +1,28 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InterDetect", "InterDetect\InterDetect.csproj", "{7CBE9A82-3CF0-42DC-B5E8-52E8C3388BE8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IDM_Console", "IDM_Console\IDM_Console.csproj", "{4DC7197F-2459-4983-A76C-33DAB4A44BFC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|x86 = Debug|x86
-		Release|x86 = Release|x86
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{7CBE9A82-3CF0-42DC-B5E8-52E8C3388BE8}.Debug|x86.ActiveCfg = Debug|x86
-		{7CBE9A82-3CF0-42DC-B5E8-52E8C3388BE8}.Debug|x86.Build.0 = Debug|x86
-		{7CBE9A82-3CF0-42DC-B5E8-52E8C3388BE8}.Release|x86.ActiveCfg = Release|x86
-		{7CBE9A82-3CF0-42DC-B5E8-52E8C3388BE8}.Release|x86.Build.0 = Release|x86
-		{4DC7197F-2459-4983-A76C-33DAB4A44BFC}.Debug|x86.ActiveCfg = Debug|x86
-		{4DC7197F-2459-4983-A76C-33DAB4A44BFC}.Debug|x86.Build.0 = Debug|x86
-		{4DC7197F-2459-4983-A76C-33DAB4A44BFC}.Release|x86.ActiveCfg = Release|x86
-		{4DC7197F-2459-4983-A76C-33DAB4A44BFC}.Release|x86.Build.0 = Release|x86
+		{7CBE9A82-3CF0-42DC-B5E8-52E8C3388BE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7CBE9A82-3CF0-42DC-B5E8-52E8C3388BE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7CBE9A82-3CF0-42DC-B5E8-52E8C3388BE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7CBE9A82-3CF0-42DC-B5E8-52E8C3388BE8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4DC7197F-2459-4983-A76C-33DAB4A44BFC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4DC7197F-2459-4983-A76C-33DAB4A44BFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4DC7197F-2459-4983-A76C-33DAB4A44BFC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4DC7197F-2459-4983-A76C-33DAB4A44BFC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(Performance) = preSolution
-		HasPerformanceSessions = true
 	EndGlobalSection
 EndGlobal

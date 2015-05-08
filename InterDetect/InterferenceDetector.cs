@@ -497,7 +497,7 @@ namespace InterDetect
 						ionCollectionTime = Convert.ToDouble(scanInfo.ScanEventValues[scanEventIndices.agctime])
 					};
 
-					Interference(ref precursorInfo, ref rawFileReader, ref scanInfo);
+					Interference(ref precursorInfo, ref rawFileReader);
 					lstPrecursorInfo.Add(precursorInfo);
 
 
@@ -601,11 +601,11 @@ namespace InterDetect
 		}
 
 
-		private void Interference(ref PrecursorIntense precursorInfo, ref XRawFileIO raw, ref FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo)
+		private void Interference(ref PrecursorIntense precursorInfo, ref XRawFileIO raw)
 		{
 			double[,] spectraData2D;
 
-			raw.GetScanData2D(precursorInfo.preScanNumber, out spectraData2D, ref scanInfo, intMaxNumberOfPeaks: 0);
+			raw.GetScanData2D(precursorInfo.preScanNumber, out spectraData2D, intMaxNumberOfPeaks: 0);
 
             double mzToFindLow = precursorInfo.dIsoloationMass - (precursorInfo.isolationwidth);
             double mzToFindHigh = precursorInfo.dIsoloationMass + (precursorInfo.isolationwidth);

@@ -5,7 +5,7 @@ using System.Linq;
 using NUnit.Framework;
 using System.IO;
 using Mage;
-using ThermoRawFileReaderDLL.FinniganFileIO;
+using ThermoRawFileReader;
 
 namespace InterDetect
 {
@@ -34,6 +34,11 @@ namespace InterDetect
 		
 		private const string raw_ext = ".raw";
 		private const string isos_ext = "_isos.csv";
+
+	    private const string SCAN_EVENT_CHARGE_STATE = "Charge State";
+        private const string SCAN_EVENT_MONOISOTOPIC_MZ = "Monoisotopic M/Z";
+        private const string SCAN_EVENT_MS2_ISOLATION_WIDTH = "MS2 Isolation Width";
+        private const string SCAN_EVENT_ION_INJECTION_TIME = "Ion Injection Time (ms)";
 
 		// Auto-properties
 		public bool ShowProgressAtConsole { get; set; }
@@ -159,7 +164,7 @@ namespace InterDetect
 		public bool GUI_PerformWork(string outpath, string rawFilePath, string isosFilePath)
         {
 	        //Calculate the needed info and generate a temporary file, keep adding each dataset to this file
-			string tempPrecFilePath = outpath;
+			var tempPrecFilePath = outpath;
 
 			Console.WriteLine("Processing file: " + Path.GetFileName(rawFilePath));
 			List<PrecursorIntense> lstPrecursorInfo = null;
@@ -194,27 +199,25 @@ namespace InterDetect
 		/// <returns></returns>
 		private bool PerformWork(FileInfo fiDatabaseFile, Dictionary<string, string> dctRawFiles, Dictionary<string, string> dctIsosFiles)
 		{
-			int fileCountCurrent = 0;
+			var fileCountCurrent = 0;
 
 			//Calculate the needed info and generate a temporary file, keep adding each dataset to this file			
 			Debug.Assert(fiDatabaseFile.DirectoryName != null, "fiDatabaseFile.DirectoryName != null");
-			string tempPrecFilePath = Path.Combine(fiDatabaseFile.DirectoryName, "prec_info_temp.txt");
+			var tempPrecFilePath = Path.Combine(fiDatabaseFile.DirectoryName, "prec_info_temp.txt");
 
-			foreach (string datasetID in dctRawFiles.Keys)
+			foreach (var datasetID in dctRawFiles.Keys)
 			{
 				if (!dctIsosFiles.ContainsKey(datasetID))
 				{
-					DeleteFile(tempPrecFilePath);
 					throw new Exception("Error in PerformWork: Dataset '" + datasetID + "' not found in isosPaths dictionary");
-				}
+                }
 
 				++fileCountCurrent;
 				Console.WriteLine("Processing file " + fileCountCurrent + " / " + dctRawFiles.Count + ": " + Path.GetFileName(dctRawFiles[datasetID]));
 
-				List<PrecursorIntense> lstPrecursorInfo = ParentInfoPass(fileCountCurrent, dctRawFiles.Count, dctRawFiles[datasetID], dctIsosFiles[datasetID]);
+				var lstPrecursorInfo = ParentInfoPass(fileCountCurrent, dctRawFiles.Count, dctRawFiles[datasetID], dctIsosFiles[datasetID]);
 				if (lstPrecursorInfo == null)
 				{
-					DeleteFile(tempPrecFilePath);
 					throw new Exception("Error in PerformWork: ParentInfoPass returned null loading " + dctRawFiles[datasetID]);
 				}
 
@@ -226,7 +229,7 @@ namespace InterDetect
 
 			try
 			{
-				//Create a delimited file reader and write a new table with this info to database
+				// Create a delimited file reader and write a new table with this info to database
 				var delimreader = new DelimitedFileReader
 				{
 					FilePath = tempPrecFilePath
@@ -241,6 +244,8 @@ namespace InterDetect
 			}
 			catch (Exception ex)
 			{
+			    Console.WriteLine("Error adding table t_precursor_interference to the SqLite database: " + ex.Message);
+                Console.WriteLine("Results are in file " + tempPrecFilePath);
 				throw new Exception("Error adding table t_precursor_interference to the SqLite database: " + ex.Message, ex);
 			}		
 
@@ -276,11 +281,11 @@ namespace InterDetect
 
 			// example of reading the rows in the buffer object
 			// (dump folder column values to Console)
-			int folderPathIdx = sink.ColumnIndex["Folder"];
-			int datasetIDIdx = sink.ColumnIndex["Dataset_ID"];
-			int datasetIdx = sink.ColumnIndex["Dataset"];
+			var folderPathIdx = sink.ColumnIndex["Folder"];
+			var datasetIDIdx = sink.ColumnIndex["Dataset_ID"];
+			var datasetIdx = sink.ColumnIndex["Dataset"];
 			filepaths = new Dictionary<string, string>();
-			foreach (string[] row in sink.Rows)
+			foreach (var row in sink.Rows)
 			{
 				// Some dataset folders might have multiple .raw files (one starting with x_ and another the real one)
 				// This could lead to duplicate key errors when trying to add a new entry in filepaths
@@ -295,30 +300,57 @@ namespace InterDetect
 			return true;
 		}
 
+	    private bool LookupDeconToolsInfo(SQLiteReader reader, out Dictionary<string, string> isosPaths)
+	    {
+	        try
+	        {
+	            var success = LookupDeconToolsInfo(reader, "T_Results_Metadata_Typed", out isosPaths);
+	            if (success)
+	                return true;
+	        }
+	        catch (Exception)
+	        {
+	            Console.WriteLine("Table T_Results_Metadata_Typed not found; will look for  t_results_metadata");
+	        }
 
-		private bool LookupDeconToolsInfo(SQLiteReader reader, out Dictionary<string, string> isosPaths)
+	        try
+	        {
+	            var success = LookupDeconToolsInfo(reader, "t_results_metadata", out isosPaths);
+                if (success)
+                    return true;
+	        }
+	        catch (Exception ex)
+	        {
+	            Console.WriteLine(ex.Message);
+	            throw;
+	        }
+
+	        return false;
+	    }
+
+	    private bool LookupDeconToolsInfo(SQLiteReader reader, string tableName, out Dictionary<string, string> isosPaths)
 		{
 			// Make a Mage sink module (simple row buffer)
 			var sink = new SimpleSink();
 
 			//Add rows from other table
-			reader.SQLText = "SELECT * FROM t_results_metadata WHERE t_results_metadata.Tool Like 'Decon%'";
+			reader.SQLText = "SELECT * FROM " + tableName + " WHERE Tool Like 'Decon%'";
 
 			// construct and run the Mage pipeline
 			ProcessingPipeline.Assemble("Test_Pipeline2", reader, sink).RunRoot(null);
 
-			int datasetID = sink.ColumnIndex["Dataset_ID"];
-			int dataset = sink.ColumnIndex["Dataset"];
-			int folder = sink.ColumnIndex["Folder"];
+			var datasetID = sink.ColumnIndex["Dataset_ID"];
+			var dataset = sink.ColumnIndex["Dataset"];
+			var folder = sink.ColumnIndex["Folder"];
 			isosPaths = new Dictionary<string, string>();
 
 			//store the paths indexed by datasetID in isosPaths
-			foreach (string[] row in sink.Rows)
+			foreach (var row in sink.Rows)
 			{
-				string tempIsosFolder = row[folder];
+				var tempIsosFolder = row[folder];
 				if (Directory.Exists(tempIsosFolder))
 				{
-					string[] isosFileCandidate = Directory.GetFiles(tempIsosFolder);
+					var isosFileCandidate = Directory.GetFiles(tempIsosFolder);
 					if (isosFileCandidate.Length != 0 && File.Exists(isosFileCandidate[0]))
 					{
 						isosPaths.Add(row[datasetID], Path.Combine(row[folder], row[dataset] + isos_ext));
@@ -355,19 +387,19 @@ namespace InterDetect
 		[Test]
 		public void TestSisiData()
 		{
-			string[] decon = new string[] {@"\\proto-9\VOrbiETD02\2012_2\Sample_4065_iTRAQ\DLS201204031741_Auto822622\Sample_4065_iTRAQ_isos.csv", 
+			var decon = new string[] {@"\\proto-9\VOrbiETD02\2012_2\Sample_4065_iTRAQ\DLS201204031741_Auto822622\Sample_4065_iTRAQ_isos.csv", 
             @"\\proto-9\VOrbiETD02\2012_2\Sample_5065_iTRAQ\DLS201204031733_Auto822617\Sample_5065_iTRAQ_isos.csv",
             @"\\proto-9\VOrbiETD02\2012_2\Sample_4050_iTRAQ_120330102958\DLS201204031744_Auto822624\Sample_4050_iTRAQ_120330102958_isos.csv"};
-			string[] rawfiles = new string[] {@"\\proto-9\VOrbiETD02\2012_2\Sample_4065_iTRAQ\Sample_4065_iTRAQ.raw", 
+			var rawfiles = new string[] {@"\\proto-9\VOrbiETD02\2012_2\Sample_4065_iTRAQ\Sample_4065_iTRAQ.raw", 
             @"\\proto-9\VOrbiETD02\2012_2\Sample_5065_iTRAQ\Sample_5065_iTRAQ.raw",
             @"\\proto-9\VOrbiETD02\2012_2\Sample_4050_iTRAQ_120330102958\Sample_4050_iTRAQ_120330102958.raw"};
 
-			int filesToProcess = 1;
+			var filesToProcess = 1;
 
-			for (int i = 0; i < filesToProcess; i++)
+			for (var i = 0; i < filesToProcess; i++)
 			{
 
-				List<PrecursorIntense> lstPrecursorInfo = ParentInfoPass(i + 1, filesToProcess, rawfiles[i], decon[i]);
+				var lstPrecursorInfo = ParentInfoPass(i + 1, filesToProcess, rawfiles[i], decon[i]);
 				if (lstPrecursorInfo == null)
 				{
 					Console.WriteLine(rawfiles[i] + " failed to load.  Deleting temp and aborting!");
@@ -415,7 +447,7 @@ namespace InterDetect
 			if (!String.Equals(isosFilePath, isosFilePathLocal))
 				fileTools.CopyFileUsingLocks(isosFilePath, isosFilePathLocal, "IDM");
 
-			bool worked = rawFileReader.OpenRawFile(rawFilePathLocal);
+			var worked = rawFileReader.OpenRawFile(rawFilePathLocal);
 			if (!worked)
 			{
 				throw new Exception("File failed to open .Raw file in ParentInfoPass: " + rawFilePathLocal);
@@ -424,60 +456,83 @@ namespace InterDetect
 			var isos = new IsosHandler(isosFilePathLocal);
 
 			var lstPrecursorInfo = new List<PrecursorIntense>();
-			int numSpectra = rawFileReader.GetNumScans();
+			var numSpectra = rawFileReader.GetNumScans();
 			
 			//TODO: Add error code for 0 spectra
-			int currPrecScan = 0;
+			var currPrecScan = 0;
 			//Go into each scan and collect precursor info.
-			double sr = 0.0;
+			var sr = 0.0;
 
 			const int scanStart = 1;
-			int scanEnd = numSpectra;
+			var scanEnd = numSpectra;
 
-			for (int scanNumber = 1; scanNumber <= scanEnd; scanNumber++)
+			for (var scanNumber = 1; scanNumber <= scanEnd; scanNumber++)
 			{
 				if (scanEnd > scanStart && (scanNumber - scanStart) / (double)(scanEnd - scanStart) > sr)
 				{
 					if (sr > 0 && ShowProgressAtConsole)
 						Console.WriteLine("  " + sr * 100 + "% completed");
 
-					float percentCompleteCurrentFile = (float)sr * 100;
-					float percentCompleteOverall = ((fileCountCurrent - 1) / (float)fileCountTotal + (float)sr / fileCountTotal) * 100;
+					var percentCompleteCurrentFile = (float)sr * 100;
+					var percentCompleteOverall = ((fileCountCurrent - 1) / (float)fileCountTotal + (float)sr / fileCountTotal) * 100;
 
 					OnProgressChanged(percentCompleteOverall, percentCompleteCurrentFile);
 
 					sr += .05;
 				}
 
-				int msorder = 2;
+				var msorder = 2;
 				if (isos.IsParentScan(scanNumber))
 					msorder = 1;
 
-				FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo;
+				clsScanInfo scanInfo;
 				rawFileReader.GetScanInfo(scanNumber, out scanInfo);
 
 
 				if (msorder > 1)
 				{
-					ScanEventIndicesType scanEventIndices;
-					string errorMessage;
-					if (!ParseScanEventNames(scanInfo, out scanEventIndices, out errorMessage))
-					{
-						Console.WriteLine("Skipping scan " + scanNumber + " since " + errorMessage);
-						continue;
-					}
 
-					int chargeState = Convert.ToInt32(scanInfo.ScanEventValues[scanEventIndices.chargeState]);
+				    string chargeStateText;
+				    if (!scanInfo.TryGetScanEvent(SCAN_EVENT_CHARGE_STATE, out chargeStateText, true))
+                    {
+                        Console.WriteLine("Skipping scan {0} since scan event '{1}' not found", scanNumber, SCAN_EVENT_CHARGE_STATE);
+                        continue;
+				    }
+
+                    string monoMzText;
+                    if (!scanInfo.TryGetScanEvent(SCAN_EVENT_MONOISOTOPIC_MZ, out monoMzText, true))
+                    {
+                        Console.WriteLine("Skipping scan {0} since scan event '{1}' not found", scanNumber, SCAN_EVENT_MONOISOTOPIC_MZ);
+                        continue;
+                    }
+
+                    string isolationWidthText;
+                    if (!scanInfo.TryGetScanEvent(SCAN_EVENT_MS2_ISOLATION_WIDTH, out isolationWidthText, true))
+                    {
+                        Console.WriteLine("Skipping scan {0} since scan event '{1}' not found", scanNumber, SCAN_EVENT_MS2_ISOLATION_WIDTH);
+                        continue;
+                    }
+
+                    string agcTimeText;
+                    if (!scanInfo.TryGetScanEvent(SCAN_EVENT_ION_INJECTION_TIME, out agcTimeText, true))
+                    {
+                        Console.WriteLine("Skipping scan {0} since scan event '{1}' not found", scanNumber, SCAN_EVENT_ION_INJECTION_TIME);
+                        continue;
+                    }
+
+                    var chargeState = Convert.ToInt32(chargeStateText);
+
 					double mz;
 					if (Math.Abs(scanInfo.ParentIonMZ) < 1e-6)
 					{
-						mz = Convert.ToDouble(scanInfo.ScanEventValues[scanEventIndices.mz]);
+                        mz = Convert.ToDouble(monoMzText);
 					}
 					else
 					{
 						mz = scanInfo.ParentIonMZ;
 					}
-					double isolationWidth = Convert.ToDouble(scanInfo.ScanEventValues[scanEventIndices.isolationWidth]);
+                    
+                    var isolationWidth = Convert.ToDouble(isolationWidthText);
 					if (chargeState == 0)
 					{
 						if (!isos.GetChargeState(currPrecScan, mz, ref chargeState))
@@ -494,10 +549,10 @@ namespace InterDetect
 						preScanNumber = currPrecScan,
 						nChargeState = chargeState,
 						isolationwidth = isolationWidth,
-						ionCollectionTime = Convert.ToDouble(scanInfo.ScanEventValues[scanEventIndices.agctime])
+                        ionCollectionTime = Convert.ToDouble(agcTimeText)
 					};
 
-					Interference(ref precursorInfo, ref rawFileReader);
+					Interference(precursorInfo, rawFileReader);
 					lstPrecursorInfo.Add(precursorInfo);
 
 
@@ -533,46 +588,6 @@ namespace InterDetect
 			return lstPrecursorInfo;
 		}
 
-		private bool ParseScanEventNames(FinniganFileReaderBaseClass.udtScanHeaderInfoType scanInfo, out ScanEventIndicesType scanEventIndices, out string errorMessage)
-		{
-			scanEventIndices = new ScanEventIndicesType();
-			errorMessage = string.Empty;
-
-			var dctScanEventNames = new Dictionary<string, int>(StringComparer.CurrentCultureIgnoreCase);
-
-			for (int i = 0; i < scanInfo.ScanEventNames.Length; i++)
-			{
-				dctScanEventNames.Add(scanInfo.ScanEventNames[i].TrimEnd(new char[] { ':', ' ' }), i);
-			}
-
-			if (!ParseScanEventNameLookupIndex(dctScanEventNames, "Charge State", out scanEventIndices.chargeState, out errorMessage))
-				return false;
-
-			if (!ParseScanEventNameLookupIndex(dctScanEventNames, "Monoisotopic M/Z", out scanEventIndices.mz, out errorMessage))
-				return false;
-
-			if (!ParseScanEventNameLookupIndex(dctScanEventNames, "MS2 Isolation Width", out scanEventIndices.isolationWidth, out errorMessage))
-				return false;
-
-            if (!ParseScanEventNameLookupIndex(dctScanEventNames, "Ion Injection Time (ms)", out scanEventIndices.agctime, out errorMessage))
-                return false;
-
-			return true;
-		}
-
-		protected bool ParseScanEventNameLookupIndex(Dictionary<string, int> dctScanEventNames, string scanEventName, out int scanEventIndex, out string errorMessage)
-		{
-			errorMessage = string.Empty;
-
-			if (!dctScanEventNames.TryGetValue(scanEventName, out scanEventIndex))
-			{
-				errorMessage = "Scan event '" + scanEventName + "' not found";
-				return false;
-			}
-
-			return true;
-		}
-
 		/// <summary>
 		/// Print our table to a temporary file
 		/// </summary>
@@ -582,7 +597,7 @@ namespace InterDetect
 		/// <param name="filepath"></param>
 		private void PrintInterference(List<PrecursorIntense> lstPrecursorInfo, string datasetID, string filepath)
 		{
-            bool fieldExistance = File.Exists(filepath);
+            var fieldExistance = File.Exists(filepath);
             using (var sw = new StreamWriter(filepath, fieldExistance))
             {
                 if (!fieldExistance)
@@ -590,7 +605,7 @@ namespace InterDetect
                     sw.Write("Dataset_ID\tScanNumber\tPrecursorScan\tParentMZ\tChargeState\tIsoWidth\tInterference\tPreIntensity\tIonCollectionTime\n");
                 }
 
-				foreach (PrecursorIntense info in lstPrecursorInfo)
+				foreach (var info in lstPrecursorInfo)
                 {
                     sw.Write(datasetID + "\t" + info.nScanNumber + "\t" + info.preScanNumber + "\t" +
                         info.dIsoloationMass + "\t" + info.nChargeState + "\t" +
@@ -601,27 +616,27 @@ namespace InterDetect
 		}
 
 
-		private void Interference(ref PrecursorIntense precursorInfo, ref XRawFileIO raw)
+		private void Interference(PrecursorIntense precursorInfo, XRawFileIO raw)
 		{
 			double[,] spectraData2D;
 
-			raw.GetScanData2D(precursorInfo.preScanNumber, out spectraData2D, intMaxNumberOfPeaks: 0);
+			raw.GetScanData2D(precursorInfo.preScanNumber, out spectraData2D);
 
-            double mzToFindLow = precursorInfo.dIsoloationMass - (precursorInfo.isolationwidth);
-            double mzToFindHigh = precursorInfo.dIsoloationMass + (precursorInfo.isolationwidth);
+            var mzToFindLow = precursorInfo.dIsoloationMass - (precursorInfo.isolationwidth);
+            var mzToFindHigh = precursorInfo.dIsoloationMass + (precursorInfo.isolationwidth);
 
-            int a = 0;
-			int b = spectraData2D.GetUpperBound(1) + 1;
-            int c = 0;
+            var a = 0;
+			var b = spectraData2D.GetUpperBound(1) + 1;
+            var c = 0;
 
-			int lowInd = BinarySearch(ref spectraData2D, a, b, c, mzToFindLow);
-			int highInd = BinarySearch(ref spectraData2D, lowInd, b, c, mzToFindHigh);
+			var lowInd = BinarySearch(ref spectraData2D, a, b, c, mzToFindLow);
+			var highInd = BinarySearch(ref spectraData2D, lowInd, b, c, mzToFindHigh);
             
             //capture all peaks in isowidth+buffer
-			List<Peak> peaks = ConvertToPeaks(ref spectraData2D, lowInd, highInd);
+			var peaks = ConvertToPeaks(ref spectraData2D, lowInd, highInd);
 
-			double mzWindowLow = precursorInfo.dIsoloationMass - (precursorInfo.isolationwidth / 2);
-			double mzWindowHigh = precursorInfo.dIsoloationMass + (precursorInfo.isolationwidth / 2);
+			var mzWindowLow = precursorInfo.dIsoloationMass - (precursorInfo.isolationwidth / 2);
+			var mzWindowHigh = precursorInfo.dIsoloationMass + (precursorInfo.isolationwidth / 2);
 
             // Narrow the range of peaks to the final tolerances
 			peaks = FilterPeaksByMZ(mzWindowLow, mzWindowHigh, peaks);
@@ -638,8 +653,6 @@ namespace InterDetect
         /// Calculates interference with the precursor ion
         /// </summary>
 		/// <param name="precursorInfo"></param>
-        /// <param name="lowind"></param>
-        /// <param name="highind"></param>
         /// <param name="peaks"></param>
 		private void InterferenceCalculation(PrecursorIntense precursorInfo, List<Peak> peaks)
         {
@@ -651,12 +664,12 @@ namespace InterDetect
 
 			if (peaks.Count > 0)
             {
-                for (int j = 0; j < peaks.Count; j++)
+                for (var j = 0; j < peaks.Count; j++)
                 {
-					double difference = (peaks[j].mz - precursorInfo.dActualMass) * precursorInfo.nChargeState;
-                    double difference_Rounded = Math.Round(difference);
-                    double expected_difference = difference_Rounded * C12_C13_MASS_DIFFERENCE;
-                    double Difference_ppm = Math.Abs((expected_difference - difference) /
+					var difference = (peaks[j].mz - precursorInfo.dActualMass) * precursorInfo.nChargeState;
+                    var difference_Rounded = Math.Round(difference);
+                    var expected_difference = difference_Rounded * C12_C13_MASS_DIFFERENCE;
+                    var Difference_ppm = Math.Abs((expected_difference - difference) /
 						(precursorInfo.dIsoloationMass * precursorInfo.nChargeState)) * 1000000;
 
                     if (Difference_ppm < PreErrorAllowed)
@@ -683,21 +696,21 @@ namespace InterDetect
 
 			var mzs = new List<Peak>();
 
-			for (int i = lowind + 1; i <= highind - 1; i++)
+			for (var i = lowind + 1; i <= highind - 1; i++)
 			{
 				if (spectraData2D[1,i] > 0)
 				{
-					int j = i;
-					double abusum = 0.0;
+					var j = i;
+					var abusum = 0.0;
 					while (spectraData2D[1,i] > 0 && !(spectraData2D[1,i - 1] > spectraData2D[1,i] && spectraData2D[1,i + 1] > spectraData2D[1,i]))
 					{
 						abusum += spectraData2D[1,i];
 						i++;
 					}
-					int end = i;
+					var end = i;
 					i = j;
-					double peaksum = 0.0;
-					double peakmax = 0.0;
+					var peaksum = 0.0;
+					var peakmax = 0.0;
 					while (i != end)
 					{
 						//test using maximum of peak
@@ -757,10 +770,10 @@ namespace InterDetect
         /// <param name="peaks"></param>
 		private void ClosestToTarget(PrecursorIntense precursorInfo, IEnumerable<Peak> peaks)
         {
-            double closest = 100000.0;
-            foreach (Peak p in peaks)
+            var closest = 100000.0;
+            foreach (var p in peaks)
             {
-				double temp = Math.Abs(p.mz - precursorInfo.dIsoloationMass);
+				var temp = Math.Abs(p.mz - precursorInfo.dIsoloationMass);
                 if (temp < closest)
                 {
 					precursorInfo.dActualMass = p.mz;

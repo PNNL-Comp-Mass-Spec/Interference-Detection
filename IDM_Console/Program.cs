@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using InterDetect;
 
 namespace IDM_Console
@@ -10,15 +7,14 @@ namespace IDM_Console
 	{
 		static void Main(string[] args)
 		{
-			string workDir = "..";
-			string sourceFileName = "Results.db3";
+			var workDir = "..";
+			var sourceFileName = "Results.db3";
 
-			var idm = new InterferenceDetector();
-			idm.ShowProgressAtConsole = false;
+		    var idm = new InterferenceDetector {ShowProgressAtConsole = false};
 
-			idm.ProgressChanged += InterfenceDetectorProgressHandler;
+		    idm.ProgressChanged += InterfenceDetectorProgressHandler;
 
-			bool success = idm.Run(workDir, sourceFileName);
+			var success = idm.Run(workDir, sourceFileName);
 
 			if (success)
 				Console.WriteLine("Success");

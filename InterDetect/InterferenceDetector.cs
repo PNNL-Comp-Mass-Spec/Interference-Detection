@@ -565,7 +565,7 @@ namespace InterDetect
         {
             double[,] spectraData2D;
 
-            raw.GetScanData2D(precursorInfo.PrecursorScanNumber, out spectraData2D);
+            raw.GetScanData2D(precursorInfo.PrecursorScanNumber, out spectraData2D, 0, true);
 
             var mzToFindLow = precursorInfo.IsoloationMass - (precursorInfo.IsolationWidth);
             var mzToFindHigh = precursorInfo.IsoloationMass + (precursorInfo.IsolationWidth);
@@ -642,6 +642,8 @@ namespace InterDetect
             {
                 if (spectraData2D[1,i] > 0)
                 {
+                    /*
+                    // Old code: simplistic centroiding
                     var j = i;
                     var abusum = 0.0;
                     while (spectraData2D[1,i] > 0 && !(spectraData2D[1,i - 1] > spectraData2D[1,i] && spectraData2D[1,i + 1] > spectraData2D[1,i]))
@@ -670,6 +672,13 @@ namespace InterDetect
                         Abundance = peakmax
                     };
                     mzs.Add(centroidPeak);
+                    */
+
+                    mzs.Add(new Peak
+                    {
+                        Mz = spectraData2D[0, i],
+                        Abundance = spectraData2D[1, i]
+                    });
                 }
             }
 

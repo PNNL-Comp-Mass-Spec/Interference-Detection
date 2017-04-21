@@ -74,6 +74,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="InterferenceCalculator.cs" />
+    <Compile Include="InterferenceCalculatorTests.cs" />
     <Compile Include="InterferenceDetector.cs" />
     <Compile Include="IsosData.cs" />
     <Compile Include="IsosHandler.cs" />

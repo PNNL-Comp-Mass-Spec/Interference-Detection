@@ -7,21 +7,34 @@
     {
         public double IsolationMass;
         public int ChargeState;
-        /// <summary>
-        /// The scan number of the product scan (NOT THE PRECURSOR SCAN NUMBER!)
-        /// </summary>
-        public int ScanNumber;
         public double IsolationWidth;
 
         /// <summary>
-        /// Interference score
+        /// Interference score - larger is better, with a max of 1 and minimum of 0
         /// </summary>
         public double Interference;
+
+        /// <summary>
+        /// The scan number of the product scan (NOT THE PRECURSOR SCAN NUMBER!)
+        /// Used only for output
+        /// </summary>
+        public int ScanNumber;
 
         /// <summary>
         /// Populated by the algorithm
         /// </summary>
         public double ActualMass;
+
+        public PrecursorInfo()
+        {
+        }
+
+        public PrecursorInfo(double isolationMass, int chargeState, double isolationWidth)
+        {
+            IsolationMass = isolationMass;
+            ChargeState = chargeState;
+            IsolationWidth = isolationWidth;
+        }
     }
 
     /// <summary>

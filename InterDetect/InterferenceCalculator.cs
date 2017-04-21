@@ -6,13 +6,26 @@ namespace InterDetect
 {
     public class InterferenceCalculator
     {
+        const double C12_C13_MASS_DIFFERENCE = 1.0033548378;
+
         /// <summary>
-        ///
+        /// Calculate the interference for the scan based on the provided data
         /// </summary>
-        /// <param name="precursorInfo">Precursor info: must set IsolationMass, ChargeState, ScanNumber, IsolationWidth</param>
+        /// <param name="precursorInfo">Precursor info: must set IsolationMass, ChargeState, IsolationWidth</param>
         /// <param name="spectraData2D">Array of centroided peak data of size [2,x], where [0,0] is first m/z and [1,0] is first intensity</param>
         public static void Interference(PrecursorInfo precursorInfo, double[,] spectraData2D)
         {
+            if (precursorInfo.ChargeState <= 0)
+            {
+                precursorInfo.ChargeState = ChargeStateGuesstimator(precursorInfo.IsolationMass, spectraData2D);
+            }
+            if (precursorInfo.ChargeState <= 0)
+            {
+                Console.WriteLine("Charge state for " + precursorInfo.IsolationMass + " in scan " + precursorInfo.ScanNumber + " not supplied, and could not guesstimate it. Giving bad score.");
+                precursorInfo.Interference = 0;
+                return;
+            }
+
             var mzToFindLow = precursorInfo.IsolationMass - (precursorInfo.IsolationWidth);
             var mzToFindHigh = precursorInfo.IsolationMass + (precursorInfo.IsolationWidth);
 
@@ -39,6 +52,101 @@ namespace InterDetect
             InterferenceCalculation(precursorInfo, peaks);
         }
 
+        private struct MassChargeData
+        {
+            public double Mass;
+            public int Charge;
+
+            public MassChargeData(double mass, int charge)
+            {
+                Mass = mass;
+                Charge = charge;
+            }
+        }
+
+        /// <summary>
+        /// Given an isolation mass and spectra data, give a reasonable guess of the charge state using abundance summing of potential isotopes
+        /// </summary>
+        /// <param name="isolationMass"></param>
+        /// <param name="spectraData2D">Array of centroided peak data of size [2,x], where [0,0] is first m/z and [1,0] is first intensity</param>
+        /// <returns></returns>
+        public static int ChargeStateGuesstimator(double isolationMass, double[,] spectraData2D)
+        {
+            // TODO: Is this sufficient, or should it be changed to a PPM Error tolerance?
+            // m/z tolerance
+            const double massTol = 0.01;
+            const int numIsotopesToCheck = 2;
+            const int minChargeToCheck = 1;
+            const int maxChargeToCheck = 4;
+
+            // One entry per charge; key=charge, value=sum of intensities of matching peaks
+            var chargesAbund = new Dictionary<int, double>();
+            // List of all masses to check, duplicates allowed
+            var massesToCheck = new List<MassChargeData>();
+
+            // Add initial data to chargesAbund, and configure massesToCheck
+            for (var i = minChargeToCheck; i <= maxChargeToCheck; i++)
+            {
+                chargesAbund.Add(i, 0);
+
+                // Add the isolation mass for each charge being checked
+                massesToCheck.Add(new MassChargeData(isolationMass, i));
+                // Add all isotope masses to check for this charge
+                for (var j = 1; j <= numIsotopesToCheck; j++)
+                {
+                    var massDiff = C12_C13_MASS_DIFFERENCE / i;
+                    massesToCheck.Add(new MassChargeData(isolationMass - massDiff, i));
+                    massesToCheck.Add(new MassChargeData(isolationMass + massDiff, i));
+                }
+            }
+
+            // Sort by mass, and set the range limits
+            massesToCheck.Sort((x,y) => x.Mass.CompareTo(y.Mass));
+            var minMass = massesToCheck.First().Mass - massTol;
+            var maxMass = massesToCheck.Last().Mass + massTol;
+            var isoMassInt = 0.0;
+
+            var maxIndex = spectraData2D.GetUpperBound(1);
+            // Iterate through the peak data, and add the matching m/z's intensities to the appropriate charge abundances
+            for (var i = 0; i <= maxIndex; i++)
+            {
+                var mz = spectraData2D[0, i];
+                var abund = spectraData2D[1, i];
+                // Skip - not in range yet
+                if (mz < minMass)
+                {
+                    continue;
+                }
+                // Stop - past the range
+                if (maxMass < mz)
+                {
+                    break;
+                }
+                // IsolationMass intensity, for determining if there were no other peaks that matched a charge state
+                if (isolationMass - massTol <= mz && mz <= isolationMass + massTol)
+                {
+                    isoMassInt += abund;
+                }
+
+                var minMz = mz - massTol;
+                var maxMz = mz + massTol;
+                // Add the matching m/z's intensities to the appropriate charge abundances
+                foreach (var match in massesToCheck.Where(x => minMz <= x.Mass && x.Mass <= maxMz))
+                {
+                    chargesAbund[match.Charge] += abund;
+                }
+            }
+
+            var mostIntense = chargesAbund.OrderByDescending(x => x.Value).First();
+            // If the only peak m/z that was matched was the isolation mass, then we didn't find anything.
+            if (mostIntense.Value.Equals(isoMassInt))
+            {
+                return 0;
+            }
+
+            return mostIntense.Key;
+        }
+
         /// <summary>
         /// Calculates interference with the precursor ion
         /// </summary>
@@ -46,7 +154,6 @@ namespace InterDetect
         /// <param name="peaks"></param>
         private static void InterferenceCalculation(PrecursorInfo precursorInfo, List<Peak> peaks)
         {
-            const double C12_C13_MASS_DIFFERENCE = 1.0033548378;
             const double PreErrorAllowed = 10.0;
             double MaxPreInt = 0;
             double MaxInterfereInt = 0;
@@ -188,13 +295,7 @@ namespace InterDetect
         /// <param name="peaks"></param>
         private static List<Peak> FilterPeaksByMZ(double lowMz, double highMz, IEnumerable<Peak> peaks)
         {
-            var peaksFiltered = from peak in peaks
-                where peak.Mz < highMz
-                      && peak.Mz > lowMz
-                orderby peak.Mz
-                select peak;
-
-            return peaksFiltered.ToList();
+            return peaks.Where(x => lowMz < x.Mz && x.Mz < highMz).OrderBy(x => x.Mz).ToList();
         }
     }
 }

@@ -11,8 +11,8 @@ namespace InterDetect
 {
     public struct Peak
     {
-        public double mz;
-        public double abundance;
+        public double Mz;
+        public double Abundance;
     };
 
     public class ProgressInfo : EventArgs
@@ -45,10 +45,10 @@ namespace InterDetect
 
         protected struct ScanEventIndicesType
         {
-            public int chargeState;
-            public int mz;
-            public int isolationWidth;
-            public int agctime;
+            public int ChargeState;
+            public int Mz;
+            public int IsolationWidth;
+            public int AgcTime;
         };
 
         public event ProgressChangedHandler ProgressChanged;
@@ -490,12 +490,12 @@ namespace InterDetect
 
                     var precursorInfo = new PrecursorIntense
                     {
-                        dIsoloationMass = mz,
-                        nScanNumber = scanNumber,
-                        preScanNumber = currPrecScan,
-                        nChargeState = chargeState,
-                        isolationwidth = isolationWidth,
-                        ionCollectionTime = Convert.ToDouble(agcTimeText)
+                        IsoloationMass = mz,
+                        ScanNumber = scanNumber,
+                        PrecursorScanNumber = currPrecScan,
+                        ChargeState = chargeState,
+                        IsolationWidth = isolationWidth,
+                        IonCollectionTime = Convert.ToDouble(agcTimeText)
                     };
 
                     Interference(precursorInfo, rawFileReader);
@@ -553,10 +553,10 @@ namespace InterDetect
 
                 foreach (var info in lstPrecursorInfo)
                 {
-                    sw.Write(datasetID + "\t" + info.nScanNumber + "\t" + info.preScanNumber + "\t" +
-                        info.dIsoloationMass + "\t" + info.nChargeState + "\t" +
-                        info.isolationwidth + "\t" + info.interference + "\t" +
-                        info.dPrecursorIntensity + "\t" + info.ionCollectionTime + "\n");
+                    sw.Write(datasetID + "\t" + info.ScanNumber + "\t" + info.PrecursorScanNumber + "\t" +
+                        info.IsoloationMass + "\t" + info.ChargeState + "\t" +
+                        info.IsolationWidth + "\t" + info.Interference + "\t" +
+                        info.PrecursorIntensity + "\t" + info.IonCollectionTime + "\n");
                 }
             }
         }
@@ -565,10 +565,10 @@ namespace InterDetect
         {
             double[,] spectraData2D;
 
-            raw.GetScanData2D(precursorInfo.preScanNumber, out spectraData2D);
+            raw.GetScanData2D(precursorInfo.PrecursorScanNumber, out spectraData2D);
 
-            var mzToFindLow = precursorInfo.dIsoloationMass - (precursorInfo.isolationwidth);
-            var mzToFindHigh = precursorInfo.dIsoloationMass + (precursorInfo.isolationwidth);
+            var mzToFindLow = precursorInfo.IsoloationMass - (precursorInfo.IsolationWidth);
+            var mzToFindHigh = precursorInfo.IsoloationMass + (precursorInfo.IsolationWidth);
 
             var a = 0;
             var b = spectraData2D.GetUpperBound(1) + 1;
@@ -580,8 +580,8 @@ namespace InterDetect
             //capture all peaks in isowidth+buffer
             var peaks = ConvertToPeaks(ref spectraData2D, lowInd, highInd);
 
-            var mzWindowLow = precursorInfo.dIsoloationMass - (precursorInfo.isolationwidth / 2);
-            var mzWindowHigh = precursorInfo.dIsoloationMass + (precursorInfo.isolationwidth / 2);
+            var mzWindowLow = precursorInfo.IsoloationMass - (precursorInfo.IsolationWidth / 2);
+            var mzWindowHigh = precursorInfo.IsoloationMass + (precursorInfo.IsolationWidth / 2);
 
             // Narrow the range of peaks to the final tolerances
             peaks = FilterPeaksByMZ(mzWindowLow, mzWindowHigh, peaks);
@@ -611,27 +611,27 @@ namespace InterDetect
             {
                 for (var j = 0; j < peaks.Count; j++)
                 {
-                    var difference = (peaks[j].mz - precursorInfo.dActualMass) * precursorInfo.nChargeState;
+                    var difference = (peaks[j].Mz - precursorInfo.ActualMass) * precursorInfo.ChargeState;
                     var difference_Rounded = Math.Round(difference);
                     var expected_difference = difference_Rounded * C12_C13_MASS_DIFFERENCE;
                     var Difference_ppm = Math.Abs((expected_difference - difference) /
-                        (precursorInfo.dIsoloationMass * precursorInfo.nChargeState)) * 1000000;
+                        (precursorInfo.IsoloationMass * precursorInfo.ChargeState)) * 1000000;
 
                     if (Difference_ppm < PreErrorAllowed)
                     {
-                        MaxPreInt += peaks[j].abundance;
+                        MaxPreInt += peaks[j].Abundance;
                     }
 
-                    MaxInterfereInt += peaks[j].abundance;
+                    MaxInterfereInt += peaks[j].Abundance;
                 }
                 OverallInterference = MaxPreInt / MaxInterfereInt;
             }
             else
             {
-                Console.WriteLine("Did not find the precursor for " + precursorInfo.dIsoloationMass + " in scan " + precursorInfo.nScanNumber);
+                Console.WriteLine("Did not find the precursor for " + precursorInfo.IsoloationMass + " in scan " + precursorInfo.ScanNumber);
             }
 
-            precursorInfo.interference = OverallInterference;
+            precursorInfo.Interference = OverallInterference;
         }
 
         private List<Peak> ConvertToPeaks(ref double[,] spectraData2D, int lowind, int highind)
@@ -666,8 +666,8 @@ namespace InterDetect
                     }
                     var centroidPeak = new Peak
                     {
-                        mz = peaksum,
-                        abundance = peakmax
+                        Mz = peaksum,
+                        Abundance = peakmax
                     };
                     mzs.Add(centroidPeak);
                 }
@@ -711,12 +711,12 @@ namespace InterDetect
             var closest = 100000.0;
             foreach (var p in peaks)
             {
-                var temp = Math.Abs(p.mz - precursorInfo.dIsoloationMass);
+                var temp = Math.Abs(p.Mz - precursorInfo.IsoloationMass);
                 if (temp < closest)
                 {
-                    precursorInfo.dActualMass = p.mz;
+                    precursorInfo.ActualMass = p.Mz;
                     closest = temp;
-                    precursorInfo.dPrecursorIntensity = p.abundance;
+                    precursorInfo.PrecursorIntensity = p.Abundance;
                 }
             }
         }
@@ -730,9 +730,9 @@ namespace InterDetect
         private List<Peak> FilterPeaksByMZ(double lowMz, double highMz, IEnumerable<Peak> peaks)
         {
             var peaksFiltered = from peak in peaks
-                            where peak.mz < highMz
-                            && peak.mz > lowMz
-                            orderby peak.mz
+                            where peak.Mz < highMz
+                            && peak.Mz > lowMz
+                            orderby peak.Mz
                             select peak;
 
             return peaksFiltered.ToList();

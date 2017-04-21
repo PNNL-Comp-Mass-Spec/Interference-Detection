@@ -1,23 +1,33 @@
 ﻿namespace InterDetect
 {
+    /// <summary>
+    /// Information required for the algorithm, and the interference score
+    /// </summary>
     public class PrecursorInfo
     {
-        public double dIsoloationMass;
-        public int nChargeState;
-        public int nScanNumber;
-        public int preScanNumber;
-        public double isolationwidth;
-        public double interference;
+        public double IsoloationMass;
+        public int ChargeState;
+        public int ScanNumber;
+        public int PrecursorScanNumber;
+        public double IsolationWidth;
+
+        /// <summary>
+        /// Interference score
+        /// </summary>
+        public double Interference;
+
+        /// <summary>
+        /// Populated by the algorithm
+        /// </summary>
+        public double ActualMass;
     }
 
-    public class PrecursorInfoTest : PrecursorInfo
+    /// <summary>
+    /// Additional data only output to text (not used in algorithm)
+    /// </summary>
+    public class PrecursorIntense : PrecursorInfo
     {
-        public double dActualMass;
-    }
-
-    public class PrecursorIntense : PrecursorInfoTest
-    {
-        public double dPrecursorIntensity;
-        public double ionCollectionTime;
+        public double PrecursorIntensity;
+        public double IonCollectionTime;
     }
 }

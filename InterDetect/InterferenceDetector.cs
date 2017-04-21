@@ -63,16 +63,6 @@ namespace InterDetect
             WorkDir = ".";
         }
 
-        [Test]
-        public void DatabaseCheck()
-        {
-            if (!Run(@"C:\DMS_WorkDir\Step_1_ASCORE"))
-            {
-                Console.WriteLine("You Fail");
-            }
-
-        }
-
         /// <summary>
         /// Given a datapath makes queries to the database for isos file and raw file paths.  Uses these
         /// to generate an interference table and adds this table to the database
@@ -374,41 +364,6 @@ namespace InterDetect
 
                 ProgressChanged(this, e);
             }
-        }
-
-        [Test]
-        public void TestSisiData()
-        {
-            var decon = new string[] {@"\\proto-9\VOrbiETD02\2012_2\Sample_4065_iTRAQ\DLS201204031741_Auto822622\Sample_4065_iTRAQ_isos.csv",
-            @"\\proto-9\VOrbiETD02\2012_2\Sample_5065_iTRAQ\DLS201204031733_Auto822617\Sample_5065_iTRAQ_isos.csv",
-            @"\\proto-9\VOrbiETD02\2012_2\Sample_4050_iTRAQ_120330102958\DLS201204031744_Auto822624\Sample_4050_iTRAQ_120330102958_isos.csv"};
-            var rawfiles = new string[] {@"\\proto-9\VOrbiETD02\2012_2\Sample_4065_iTRAQ\Sample_4065_iTRAQ.raw",
-            @"\\proto-9\VOrbiETD02\2012_2\Sample_5065_iTRAQ\Sample_5065_iTRAQ.raw",
-            @"\\proto-9\VOrbiETD02\2012_2\Sample_4050_iTRAQ_120330102958\Sample_4050_iTRAQ_120330102958.raw"};
-
-            var filesToProcess = 1;
-
-            for (var i = 0; i < filesToProcess; i++)
-            {
-
-                var lstPrecursorInfo = ParentInfoPass(i + 1, filesToProcess, rawfiles[i], decon[i]);
-                if (lstPrecursorInfo == null)
-                {
-                    Console.WriteLine(rawfiles[i] + " failed to load.  Deleting temp and aborting!");
-                    return;
-                }
-                PrintInterference(lstPrecursorInfo, "number", @"C:\Users\aldr699\Documents\2012\iTRAQ\InterferenceTesting\DataInt" + i + "efz50.txt");
-            }
-        }
-
-        [Test]
-        public void TestInterference()
-        {
-            //     GetParentInfo parentInfo = new GetParentInfoSequest(@"\\proto-9\VOrbiETD03\2012_1\Isobaric_iTRAQ8_5ug_Run1_10Jan12_Cougar_11-10-09\DLS201201111344_Auto783501\Isobaric_iTRAQ8_5ug_Run1_10Jan12_Cougar_11-10-09_isos");
-            //List<PrecursorInfo> myInfo = ParentInfoPass(@"\\proto-9\VOrbiETD03\2011_4\E_ligno_SCF1_LX_pool_01_01Oct11_Lynx_11-09-28\E_ligno_SCF1_LX_pool_01_01Oct11_Lynx_11-09-28.raw", parentInfo);
-            //Interference(ref myInfo, @"\\proto-9\VOrbiETD03\2011_4\E_ligno_SCF1_LX_pool_01_01Oct11_Lynx_11-09-28\E_ligno_SCF1_LX_pool_01_01Oct11_Lynx_11-09-28.raw");
-
-            //PrintInterference(myInfo, @"C:\Users\aldr699\Documents\2012\InterferenceTesting\here2.txt");
         }
 
         /// <summary>
@@ -782,5 +737,53 @@ namespace InterDetect
 
             return peaksFiltered.ToList();
         }
+
+        #region NUnit Tests
+
+        [Test]
+        public void DatabaseCheck()
+        {
+            if (!Run(@"C:\DMS_WorkDir\Step_1_ASCORE"))
+            {
+                Console.WriteLine("You Fail");
+            }
+        }
+
+        [Test]
+        public void TestSisiData()
+        {
+            var decon = new string[] {@"\\proto-9\VOrbiETD02\2012_2\Sample_4065_iTRAQ\DLS201204031741_Auto822622\Sample_4065_iTRAQ_isos.csv",
+                @"\\proto-9\VOrbiETD02\2012_2\Sample_5065_iTRAQ\DLS201204031733_Auto822617\Sample_5065_iTRAQ_isos.csv",
+                @"\\proto-9\VOrbiETD02\2012_2\Sample_4050_iTRAQ_120330102958\DLS201204031744_Auto822624\Sample_4050_iTRAQ_120330102958_isos.csv"};
+            var rawfiles = new string[] {@"\\proto-9\VOrbiETD02\2012_2\Sample_4065_iTRAQ\Sample_4065_iTRAQ.raw",
+                @"\\proto-9\VOrbiETD02\2012_2\Sample_5065_iTRAQ\Sample_5065_iTRAQ.raw",
+                @"\\proto-9\VOrbiETD02\2012_2\Sample_4050_iTRAQ_120330102958\Sample_4050_iTRAQ_120330102958.raw"};
+
+            var filesToProcess = 1;
+
+            for (var i = 0; i < filesToProcess; i++)
+            {
+
+                var lstPrecursorInfo = ParentInfoPass(i + 1, filesToProcess, rawfiles[i], decon[i]);
+                if (lstPrecursorInfo == null)
+                {
+                    Console.WriteLine(rawfiles[i] + " failed to load.  Deleting temp and aborting!");
+                    return;
+                }
+                PrintInterference(lstPrecursorInfo, "number", @"C:\Users\aldr699\Documents\2012\iTRAQ\InterferenceTesting\DataInt" + i + "efz50.txt");
+            }
+        }
+
+        [Test]
+        public void TestInterference()
+        {
+            //     GetParentInfo parentInfo = new GetParentInfoSequest(@"\\proto-9\VOrbiETD03\2012_1\Isobaric_iTRAQ8_5ug_Run1_10Jan12_Cougar_11-10-09\DLS201201111344_Auto783501\Isobaric_iTRAQ8_5ug_Run1_10Jan12_Cougar_11-10-09_isos");
+            //List<PrecursorInfo> myInfo = ParentInfoPass(@"\\proto-9\VOrbiETD03\2011_4\E_ligno_SCF1_LX_pool_01_01Oct11_Lynx_11-09-28\E_ligno_SCF1_LX_pool_01_01Oct11_Lynx_11-09-28.raw", parentInfo);
+            //Interference(ref myInfo, @"\\proto-9\VOrbiETD03\2011_4\E_ligno_SCF1_LX_pool_01_01Oct11_Lynx_11-09-28\E_ligno_SCF1_LX_pool_01_01Oct11_Lynx_11-09-28.raw");
+
+            //PrintInterference(myInfo, @"C:\Users\aldr699\Documents\2012\InterferenceTesting\here2.txt");
+        }
+
+        #endregion
     }
 }

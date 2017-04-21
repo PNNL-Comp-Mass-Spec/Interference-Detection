@@ -8,7 +8,6 @@
         public int preScanNumber;
         public double isolationwidth;
         public double interference;
-
     }
 
     public class PrecursorInfoTest : PrecursorInfo
@@ -21,5 +20,4 @@
         public double dPrecursorIntensity;
         public double ionCollectionTime;
     }
-
 }

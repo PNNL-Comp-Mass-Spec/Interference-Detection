@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace InterDetect
 {
@@ -11,12 +9,12 @@ namespace InterDetect
         /// <summary>
         ///
         /// </summary>
-        /// <param name="precursorInfo"></param>
-        /// <param name="spectraData2D">Array of size [2,x], where [0,0] is first m/z and [1,0] is first intensity</param>
+        /// <param name="precursorInfo">Precursor info: must set IsolationMass, ChargeState, ScanNumber, IsolationWidth</param>
+        /// <param name="spectraData2D">Array of centroided peak data of size [2,x], where [0,0] is first m/z and [1,0] is first intensity</param>
         public static void Interference(PrecursorInfo precursorInfo, double[,] spectraData2D)
         {
-            var mzToFindLow = precursorInfo.IsoloationMass - (precursorInfo.IsolationWidth);
-            var mzToFindHigh = precursorInfo.IsoloationMass + (precursorInfo.IsolationWidth);
+            var mzToFindLow = precursorInfo.IsolationMass - (precursorInfo.IsolationWidth);
+            var mzToFindHigh = precursorInfo.IsolationMass + (precursorInfo.IsolationWidth);
 
             var a = 0;
             var b = spectraData2D.GetUpperBound(1) + 1;
@@ -28,8 +26,8 @@ namespace InterDetect
             //capture all peaks in isowidth+buffer
             var peaks = ConvertToPeaks(ref spectraData2D, lowInd, highInd);
 
-            var mzWindowLow = precursorInfo.IsoloationMass - (precursorInfo.IsolationWidth / 2);
-            var mzWindowHigh = precursorInfo.IsoloationMass + (precursorInfo.IsolationWidth / 2);
+            var mzWindowLow = precursorInfo.IsolationMass - (precursorInfo.IsolationWidth / 2);
+            var mzWindowHigh = precursorInfo.IsolationMass + (precursorInfo.IsolationWidth / 2);
 
             // Narrow the range of peaks to the final tolerances
             peaks = FilterPeaksByMZ(mzWindowLow, mzWindowHigh, peaks);
@@ -62,7 +60,7 @@ namespace InterDetect
                     var difference_Rounded = Math.Round(difference);
                     var expected_difference = difference_Rounded * C12_C13_MASS_DIFFERENCE;
                     var Difference_ppm = Math.Abs((expected_difference - difference) /
-                                                  (precursorInfo.IsoloationMass * precursorInfo.ChargeState)) * 1000000;
+                                                  (precursorInfo.IsolationMass * precursorInfo.ChargeState)) * 1000000;
 
                     if (Difference_ppm < PreErrorAllowed)
                     {
@@ -75,7 +73,7 @@ namespace InterDetect
             }
             else
             {
-                Console.WriteLine("Did not find the precursor for " + precursorInfo.IsoloationMass + " in scan " + precursorInfo.ScanNumber);
+                Console.WriteLine("Did not find the precursor for " + precursorInfo.IsolationMass + " in scan " + precursorInfo.ScanNumber);
             }
 
             precursorInfo.Interference = OverallInterference;
@@ -167,7 +165,7 @@ namespace InterDetect
             var abund = 0.0;
             foreach (var p in peaks)
             {
-                var temp = Math.Abs(p.Mz - precursorInfo.IsoloationMass);
+                var temp = Math.Abs(p.Mz - precursorInfo.IsolationMass);
                 if (temp < closest)
                 {
                     precursorInfo.ActualMass = p.Mz;

@@ -490,7 +490,7 @@ namespace InterDetect
 
                     var precursorInfo = new PrecursorIntense
                     {
-                        IsoloationMass = mz,
+                        IsolationMass = mz,
                         ScanNumber = scanNumber,
                         PrecursorScanNumber = currPrecScan,
                         ChargeState = chargeState,
@@ -554,7 +554,7 @@ namespace InterDetect
                 foreach (var info in lstPrecursorInfo)
                 {
                     sw.Write(datasetID + "\t" + info.ScanNumber + "\t" + info.PrecursorScanNumber + "\t" +
-                        info.IsoloationMass + "\t" + info.ChargeState + "\t" +
+                        info.IsolationMass + "\t" + info.ChargeState + "\t" +
                         info.IsolationWidth + "\t" + info.Interference + "\t" +
                         info.PrecursorIntensity + "\t" + info.IonCollectionTime + "\n");
                 }

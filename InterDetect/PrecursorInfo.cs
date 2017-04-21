@@ -5,10 +5,12 @@
     /// </summary>
     public class PrecursorInfo
     {
-        public double IsoloationMass;
+        public double IsolationMass;
         public int ChargeState;
+        /// <summary>
+        /// The scan number of the product scan (NOT THE PRECURSOR SCAN NUMBER!)
+        /// </summary>
         public int ScanNumber;
-        public int PrecursorScanNumber;
         public double IsolationWidth;
 
         /// <summary>
@@ -23,11 +25,23 @@
     }
 
     /// <summary>
-    /// Additional data only output to text (not used in algorithm)
+    /// Additional data only used by the full workflow of InterferenceDetector, but not by InterferenceCalculator
     /// </summary>
     public class PrecursorIntense : PrecursorInfo
     {
+        /// <summary>
+        /// Used to read the precursor scan data for the scan
+        /// </summary>
+        public int PrecursorScanNumber;
+
+        /// <summary>
+        /// Populated by the algorithm, and output to text
+        /// </summary>
         public double PrecursorIntensity;
+
+        /// <summary>
+        /// Read from raw file and output to text
+        /// </summary>
         public double IonCollectionTime;
     }
 }

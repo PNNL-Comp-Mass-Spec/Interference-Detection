@@ -7,6 +7,8 @@ namespace InterDetect
     public class InterferenceCalculator
     {
         const double C12_C13_MASS_DIFFERENCE = 1.0033548378;
+        const int NumIsotopesToCheckChargeGuess = 2;
+        private const double DataBufferChargeGuess = C12_C13_MASS_DIFFERENCE * (NumIsotopesToCheckChargeGuess + 1);
 
         /// <summary>
         /// Calculate the interference for the scan based on the provided data
@@ -15,40 +17,60 @@ namespace InterDetect
         /// <param name="spectraData2D">Array of centroided peak data of size [2,x], where [0,0] is first m/z and [1,0] is first intensity</param>
         public static void Interference(PrecursorInfo precursorInfo, double[,] spectraData2D)
         {
-            if (precursorInfo.ChargeState <= 0)
-            {
-                precursorInfo.ChargeState = ChargeStateGuesstimator(precursorInfo.IsolationMass, spectraData2D);
-            }
-            if (precursorInfo.ChargeState <= 0)
-            {
-                Console.WriteLine("Charge state for " + precursorInfo.IsolationMass + " in scan " + precursorInfo.ScanNumber + " not supplied, and could not guesstimate it. Giving bad score.");
-                precursorInfo.Interference = 0;
-                return;
-            }
-
             var mzToFindLow = precursorInfo.IsolationMass - (precursorInfo.IsolationWidth);
             var mzToFindHigh = precursorInfo.IsolationMass + (precursorInfo.IsolationWidth);
 
-            var a = 0;
-            var b = spectraData2D.GetUpperBound(1) + 1;
-            var c = 0;
+            if (precursorInfo.ChargeState <= 0)
+            {
+                // Make sure we cover the range needed to guess a charge
+                mzToFindLow = Math.Min(mzToFindLow, precursorInfo.IsolationMass - DataBufferChargeGuess);
+                mzToFindHigh = Math.Max(mzToFindHigh, precursorInfo.IsolationMass + DataBufferChargeGuess);
+            }
 
-            var lowInd = BinarySearch(ref spectraData2D, a, b, c, mzToFindLow);
-            var highInd = BinarySearch(ref spectraData2D, lowInd, b, c, mzToFindHigh);
+            // Limit the number of peaks we convert to Peak objects to peaks that are within reasonable range of the isolation mass
+            var min = 0;
+            var max = spectraData2D.GetUpperBound(1) + 1;
+            // Binary search for the low index
+            var lowIndex = BinarySearch(ref spectraData2D, min, max, mzToFindLow);
+            // TODO: Given the normal isolation widths, a linear search would likely be faster than the binary search
+            // for finding the high index, when the starting point is the low index
+            var highIndex = BinarySearch(ref spectraData2D, lowIndex, max, mzToFindHigh);
 
             //capture all peaks in isowidth+buffer
-            var peaks = ConvertToPeaks(ref spectraData2D, lowInd, highInd);
+            var peaks = ConvertToPeaks(ref spectraData2D, lowIndex, highIndex);
+
+            // Run the rest of the algorithm on the converted peaks
+            Interference(precursorInfo, peaks);
+        }
+
+        /// <summary>
+        /// Calculate the interference for the scan based on the provided data
+        /// </summary>
+        /// <param name="precursorInfo">Precursor info: must set IsolationMass, ChargeState, IsolationWidth</param>
+        /// <param name="peakData">list of centroided peakData</param>
+        public static void Interference(PrecursorInfo precursorInfo, List<Peak> peakData)
+        {
+            if (precursorInfo.ChargeState <= 0)
+            {
+                precursorInfo.ChargeState = ChargeStateGuesstimator(precursorInfo.IsolationMass, peakData);
+                if (precursorInfo.ChargeState <= 0)
+                {
+                    Console.WriteLine("Charge state for " + precursorInfo.IsolationMass + " in scan " + precursorInfo.ScanNumber + " not supplied, and could not guesstimate it. Giving bad score.");
+                    precursorInfo.Interference = 0;
+                    return;
+                }
+            }
 
             var mzWindowLow = precursorInfo.IsolationMass - (precursorInfo.IsolationWidth / 2);
             var mzWindowHigh = precursorInfo.IsolationMass + (precursorInfo.IsolationWidth / 2);
 
             // Narrow the range of peaks to the final tolerances
-            peaks = FilterPeaksByMZ(mzWindowLow, mzWindowHigh, peaks);
+            var peaks = FilterPeaksByMZ(mzWindowLow, mzWindowHigh, peakData);
 
-            //find target peak for use as precursor to find interference
+            // find target peak for use as precursor to find interference
             ClosestToTarget(precursorInfo, peaks);
 
-            //perform the calculation
+            // perform the calculation
             InterferenceCalculation(precursorInfo, peaks);
         }
 
@@ -72,10 +94,21 @@ namespace InterDetect
         /// <returns></returns>
         public static int ChargeStateGuesstimator(double isolationMass, double[,] spectraData2D)
         {
+            var peaks = ConvertToPeaks(ref spectraData2D);
+            return ChargeStateGuesstimator(isolationMass, peaks);
+        }
+
+        /// <summary>
+        /// Given an isolation mass and peak data, give a reasonable guess of the charge state using abundance summing of potential isotopes
+        /// </summary>
+        /// <param name="isolationMass"></param>
+        /// <param name="peaks">List of centroided peaks</param>
+        /// <returns></returns>
+        public static int ChargeStateGuesstimator(double isolationMass, List<Peak> peaks)
+        {
             // TODO: Is this sufficient, or should it be changed to a PPM Error tolerance?
             // m/z tolerance
             const double massTol = 0.01;
-            const int numIsotopesToCheck = 2;
             const int minChargeToCheck = 1;
             const int maxChargeToCheck = 4;
 
@@ -92,7 +125,7 @@ namespace InterDetect
                 // Add the isolation mass for each charge being checked
                 massesToCheck.Add(new MassChargeData(isolationMass, i));
                 // Add all isotope masses to check for this charge
-                for (var j = 1; j <= numIsotopesToCheck; j++)
+                for (var j = 1; j <= NumIsotopesToCheckChargeGuess; j++)
                 {
                     var massDiff = C12_C13_MASS_DIFFERENCE / i;
                     massesToCheck.Add(new MassChargeData(isolationMass - massDiff, i));
@@ -106,12 +139,11 @@ namespace InterDetect
             var maxMass = massesToCheck.Last().Mass + massTol;
             var isoMassInt = 0.0;
 
-            var maxIndex = spectraData2D.GetUpperBound(1);
             // Iterate through the peak data, and add the matching m/z's intensities to the appropriate charge abundances
-            for (var i = 0; i <= maxIndex; i++)
+            foreach (var peak in peaks.OrderBy(x => x.Mz))
             {
-                var mz = spectraData2D[0, i];
-                var abund = spectraData2D[1, i];
+                var mz = peak.Mz;
+                var abund = peak.Abundance;
                 // Skip - not in range yet
                 if (mz < minMass)
                 {
@@ -155,42 +187,52 @@ namespace InterDetect
         private static void InterferenceCalculation(PrecursorInfo precursorInfo, List<Peak> peaks)
         {
             const double PreErrorAllowed = 10.0;
-            double MaxPreInt = 0;
-            double MaxInterfereInt = 0;
-            double OverallInterference = 0;
+            double maxPrecursorIntensity = 0;
+            double maxInterferenceIntensity = 0;
+            double overallInterference = 0;
 
             if (peaks.Count > 0)
             {
                 for (var j = 0; j < peaks.Count; j++)
                 {
                     var difference = (peaks[j].Mz - precursorInfo.ActualMass) * precursorInfo.ChargeState;
-                    var difference_Rounded = Math.Round(difference);
-                    var expected_difference = difference_Rounded * C12_C13_MASS_DIFFERENCE;
-                    var Difference_ppm = Math.Abs((expected_difference - difference) /
+                    var differenceRounded = Math.Round(difference);
+                    var expectedDifference = differenceRounded * C12_C13_MASS_DIFFERENCE;
+                    var differencePpm = Math.Abs((expectedDifference - difference) /
                                                   (precursorInfo.IsolationMass * precursorInfo.ChargeState)) * 1000000;
 
-                    if (Difference_ppm < PreErrorAllowed)
+                    if (differencePpm < PreErrorAllowed)
                     {
-                        MaxPreInt += peaks[j].Abundance;
+                        maxPrecursorIntensity += peaks[j].Abundance;
                     }
 
-                    MaxInterfereInt += peaks[j].Abundance;
+                    maxInterferenceIntensity += peaks[j].Abundance;
                 }
-                OverallInterference = MaxPreInt / MaxInterfereInt;
+                overallInterference = maxPrecursorIntensity / maxInterferenceIntensity;
             }
             else
             {
                 Console.WriteLine("Did not find the precursor for " + precursorInfo.IsolationMass + " in scan " + precursorInfo.ScanNumber);
             }
 
-            precursorInfo.Interference = OverallInterference;
+            precursorInfo.Interference = overallInterference;
         }
 
-        private static List<Peak> ConvertToPeaks(ref double[,] spectraData2D, int lowind, int highind)
+        /// <summary>
+        /// Converts a two-dimensional array of peak data to a list of peaks
+        /// </summary>
+        /// <param name="spectraData2D">Array of centroided peak data of size [2,x], where [0,0] is first m/z and [1,0] is first intensity</param>
+        /// <param name="lowIndex">Lowest index to convert</param>
+        /// <param name="highIndex">Highest index to convert</param>
+        /// <returns></returns>
+        public static List<Peak> ConvertToPeaks(ref double[,] spectraData2D, int lowIndex = 0, int highIndex = int.MaxValue)
         {
             var mzs = new List<Peak>();
+            var maxIndex = spectraData2D.GetUpperBound(1);
+            lowIndex = Math.Max(lowIndex, 0);
+            highIndex = Math.Min(highIndex, maxIndex);
 
-            for (var i = lowind + 1; i <= highind - 1; i++)
+            for (var i = lowIndex; i <= highIndex; i++)
             {
                 if (spectraData2D[1, i] > 0)
                 {
@@ -237,27 +279,43 @@ namespace InterDetect
             return mzs;
         }
 
-        private static int BinarySearch(ref double[,] spectraData2D, int a, int b, int c, double mzToFind)
+        /// <summary>
+        /// Binary search for search the m/z dimension of the 2-dimensional array (.NET binary search doesn't support multi-dimensional arrays)
+        /// </summary>
+        /// <param name="spectraData2D"></param>
+        /// <param name="min"></param>
+        /// <param name="max"></param>
+        /// <param name="mzToFind"></param>
+        /// <returns></returns>
+        private static int BinarySearch(ref double[,] spectraData2D, int min, int max, double mzToFind)
         {
             const double tol = 0.1;
+            var mid = 0;
 
             while (true)
             {
-                if (Math.Abs(spectraData2D[0, c] - mzToFind) < tol || c == (b + a) / 2)
+                // Exit condition
+                if (Math.Abs(spectraData2D[0, mid] - mzToFind) < tol || mid == (max + min) / 2)
                 {
                     break;
                 }
-                c = (b + a) / 2;
-                if (spectraData2D[0, c] < mzToFind)
+
+                // set midpoint
+                mid = (max + min) / 2;
+
+                // mid is smaller - next min is mid
+                if (spectraData2D[0, mid] < mzToFind)
                 {
-                    a = c;
+                    min = mid;
                 }
-                if (spectraData2D[0, c] > mzToFind)
+
+                // mid is larger - next max is mid
+                if (spectraData2D[0, mid] > mzToFind)
                 {
-                    b = c;
+                    max = mid;
                 }
             }
-            return c;
+            return mid;
         }
 
         /// <summary>
@@ -281,6 +339,7 @@ namespace InterDetect
                 }
             }
 
+            // Only set the Precursor Intensity if we have a place to store it (usually only used for full workflow in InterferenceDetector)
             if (precursorInfo is PrecursorIntense)
             {
                 ((PrecursorIntense) precursorInfo).PrecursorIntensity = abund;

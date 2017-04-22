@@ -91,7 +91,6 @@ namespace InterDetect
                 }
             };
 
-
             var data = new List<PrecursorInfo>();
             data.Add(new PrecursorInfo(428.9168, 3, 2.0) {ActualMass = 428.5828});
             data.Add(new PrecursorInfo(436.5596, 3, 2.0) {ActualMass = 436.5596});
@@ -113,9 +112,10 @@ namespace InterDetect
             data.Add(new PrecursorInfo(447.7539, -1, 2.0));
             data.Add(new PrecursorInfo(449.2640, -1, 2.0));
 
+            var peakList = InterferenceCalculator.ConvertToPeaks(ref peakData);
             foreach (var pre in data)
             {
-                var guessCharge = InterferenceCalculator.ChargeStateGuesstimator(pre.IsolationMass, peakData);
+                var guessCharge = InterferenceCalculator.ChargeStateGuesstimator(pre.IsolationMass, peakList);
                 System.Console.WriteLine("Peak mass {0:F4} Charge: Thermo: {1} Guess: {2}", pre.IsolationMass, pre.ChargeState, guessCharge);
                 if (pre.ChargeState > 0)
                 {

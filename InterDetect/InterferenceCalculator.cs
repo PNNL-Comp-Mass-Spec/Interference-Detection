@@ -186,7 +186,7 @@ namespace InterDetect
         /// <param name="peaks"></param>
         private static void InterferenceCalculation(PrecursorInfo precursorInfo, List<Peak> peaks)
         {
-            const double PreErrorAllowed = 10.0;
+            const double precursorErrorAllowed = 10.0;
             double maxPrecursorIntensity = 0;
             double maxInterferenceIntensity = 0;
             double overallInterference = 0;
@@ -201,7 +201,7 @@ namespace InterDetect
                     var differencePpm = Math.Abs((expectedDifference - difference) /
                                                   (precursorInfo.IsolationMass * precursorInfo.ChargeState)) * 1000000;
 
-                    if (differencePpm < PreErrorAllowed)
+                    if (differencePpm < precursorErrorAllowed)
                     {
                         maxPrecursorIntensity += peaks[j].Abundance;
                     }

@@ -9,12 +9,25 @@ using ThermoRawFileReader;
 
 namespace InterDetect
 {
+    /// <summary>
+    /// Simple peak object
+    /// </summary>
     public struct Peak
     {
+        /// <summary>
+        /// m/z
+        /// </summary>
         public double Mz;
+
+        /// <summary>
+        /// Intensity/abundance
+        /// </summary>
         public double Abundance;
     };
 
+    /// <summary>
+    /// Progress reporting info
+    /// </summary>
     public class ProgressInfo : EventArgs
     {
         /// <summary>
@@ -28,9 +41,11 @@ namespace InterDetect
         public float ProgressCurrentFile { get; set; }
     }
 
+    /// <summary>
+    /// Interference detection algorithm - uses sqlite, .raw, and _isos.csv as input
+    /// </summary>
     public class InterferenceDetector
     {
-
         private const string raw_ext = ".raw";
         private const string isos_ext = "_isos.csv";
 

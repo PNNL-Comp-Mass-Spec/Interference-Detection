@@ -245,38 +245,6 @@ namespace InterDetect
             {
                 if (spectraData2D[1, i] > 0)
                 {
-                    /*
-                    // Old code: simplistic centroiding
-                    var j = i;
-                    var abusum = 0.0;
-                    while (spectraData2D[1, i] > 0 && !(spectraData2D[1, i - 1] > spectraData2D[1, i] && spectraData2D[1, i + 1] > spectraData2D[1, i]))
-                    {
-                        abusum += spectraData2D[1, i];
-                        i++;
-                    }
-                    var end = i;
-                    i = j;
-                    var peaksum = 0.0;
-                    var peakmax = 0.0;
-                    while (i != end)
-                    {
-                        //test using maximum of peak
-                        if (spectraData2D[1, i] > peakmax)
-                        {
-                            peakmax = spectraData2D[1, i];
-                        }
-
-                        peaksum += spectraData2D[1, i] / abusum * spectraData2D[0, i];
-                        i++;
-                    }
-                    var centroidPeak = new Peak
-                    {
-                        Mz = peaksum,
-                        Abundance = peakmax
-                    };
-                    mzs.Add(centroidPeak);
-                    */
-
                     mzs.Add(new Peak
                     {
                         Mz = spectraData2D[0, i],

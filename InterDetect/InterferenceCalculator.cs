@@ -349,9 +349,10 @@ namespace InterDetect
             }
 
             // Only set the Precursor Intensity if we have a place to store it (usually only used for full workflow in InterferenceDetector)
-            if (precursorInfo is PrecursorIntense)
+            var precursorInfoWithIntensity = precursorInfo as PrecursorIntense;
+            if (precursorInfoWithIntensity != null)
             {
-                ((PrecursorIntense) precursorInfo).PrecursorIntensity = abund;
+                precursorInfoWithIntensity.PrecursorIntensity = abund;
             }
         }
 

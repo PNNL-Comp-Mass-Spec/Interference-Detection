@@ -35,6 +35,10 @@
             ChargeState = chargeState;
             IsolationWidth = isolationWidth;
         }
+        public override string ToString()
+        {
+            return string.Format("MS2 scan {0} @ {1:F2} m/z, charge {2}", ScanNumber, IsolationMass, ChargeState);
+        }
     }
 
     /// <summary>
@@ -56,5 +60,10 @@
         /// Read from raw file and output to text
         /// </summary>
         public double IonCollectionTime;
+
+        public override string ToString()
+        {
+            return string.Format("Precursor scan {0} for {1}", PrecursorScanNumber, base.ToString());
+        }
     }
 }

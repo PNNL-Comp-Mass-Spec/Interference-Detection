@@ -23,6 +23,11 @@ namespace InterDetect
         /// Intensity/abundance
         /// </summary>
         public double Abundance;
+
+        public override string ToString()
+        {
+            return string.Format("{0:F2} m/z, intensity {1:F0}", Mz, Abundance);
+        }
     };
 
     /// <summary>

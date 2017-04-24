@@ -511,13 +511,10 @@ namespace InterDetect
                         }
                     }
 
-                    var precursorInfo = new PrecursorIntense
+                    var precursorInfo = new PrecursorIntense(mz, chargeState, isolationWidth)
                     {
-                        IsolationMass = mz,
                         ScanNumber = scanNumber,
                         PrecursorScanNumber = currPrecScan,
-                        ChargeState = chargeState,
-                        IsolationWidth = isolationWidth,
                         IonCollectionTime = Convert.ToDouble(agcTimeText)
                     };
 

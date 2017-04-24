@@ -189,9 +189,14 @@ namespace InterDetect
         /// <param name="peaks"></param>
         private static void InterferenceCalculation(PrecursorInfo precursorInfo, List<Peak> peaks)
         {
-            const double precursorErrorAllowed = 10.0;
-            double maxPrecursorIntensity = 0;
-            double maxInterferenceIntensity = 0;
+            const double PRECURSOR_ION_TOLERANCE_PPM = 15.0;
+
+            double precursorIntensitySum = 0;
+
+            double intensitySumAllPeaks = 0;
+
+            // Fraction of observed peaks that are from the precursor
+            // Higher score is better; 1 means all peaks are from the precursor
             double overallInterference = 0;
 
             if (peaks.Count > 0)
@@ -204,14 +209,15 @@ namespace InterDetect
                     var differencePpm = Math.Abs((expectedDifference - difference) /
                                                   (precursorInfo.IsolationMass * precursorInfo.ChargeState)) * 1000000;
 
-                    if (differencePpm < precursorErrorAllowed)
+                    if (differencePpm < PRECURSOR_ION_TOLERANCE_PPM)
                     {
-                        maxPrecursorIntensity += peaks[j].Abundance;
+                        precursorIntensitySum += peaks[j].Abundance;
                     }
 
-                    maxInterferenceIntensity += peaks[j].Abundance;
+                    intensitySumAllPeaks += peaks[j].Abundance;
                 }
-                overallInterference = maxPrecursorIntensity / maxInterferenceIntensity;
+
+                overallInterference = precursorIntensitySum / intensitySumAllPeaks;
             }
             else
             {

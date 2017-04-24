@@ -415,10 +415,10 @@ namespace InterDetect
             // ReSharper disable once AssignNullToNotNullAttribute
             var isosFilePathLocal = Path.Combine(WorkDir, Path.GetFileName(isosFilePath));
 
-            if (!String.Equals(rawFilePath, rawFilePathLocal))
+            if (!string.Equals(rawFilePath, rawFilePathLocal))
                 fileTools.CopyFileUsingLocks(rawFilePath, rawFilePathLocal, "IDM");
 
-            if (!String.Equals(isosFilePath, isosFilePathLocal))
+            if (!string.Equals(isosFilePath, isosFilePathLocal))
                 fileTools.CopyFileUsingLocks(isosFilePath, isosFilePathLocal, "IDM");
 
             var worked = rawFileReader.OpenRawFile(rawFilePathLocal);
@@ -459,36 +459,31 @@ namespace InterDetect
                 if (isos.IsParentScan(scanNumber))
                     msorder = 1;
 
-                clsScanInfo scanInfo;
-                rawFileReader.GetScanInfo(scanNumber, out scanInfo);
+                rawFileReader.GetScanInfo(scanNumber, out clsScanInfo scanInfo);
 
 
                 if (msorder > 1)
                 {
 
-                    string chargeStateText;
-                    if (!scanInfo.TryGetScanEvent(SCAN_EVENT_CHARGE_STATE, out chargeStateText, true))
+                    if (!scanInfo.TryGetScanEvent(SCAN_EVENT_CHARGE_STATE, out var chargeStateText, true))
                     {
                         Console.WriteLine("Skipping scan {0} since scan event '{1}' not found", scanNumber, SCAN_EVENT_CHARGE_STATE);
                         continue;
                     }
 
-                    string monoMzText;
-                    if (!scanInfo.TryGetScanEvent(SCAN_EVENT_MONOISOTOPIC_MZ, out monoMzText, true))
+                    if (!scanInfo.TryGetScanEvent(SCAN_EVENT_MONOISOTOPIC_MZ, out var monoMzText, true))
                     {
                         Console.WriteLine("Skipping scan {0} since scan event '{1}' not found", scanNumber, SCAN_EVENT_MONOISOTOPIC_MZ);
                         continue;
                     }
 
-                    string isolationWidthText;
-                    if (!scanInfo.TryGetScanEvent(SCAN_EVENT_MS2_ISOLATION_WIDTH, out isolationWidthText, true))
+                    if (!scanInfo.TryGetScanEvent(SCAN_EVENT_MS2_ISOLATION_WIDTH, out var isolationWidthText, true))
                     {
                         Console.WriteLine("Skipping scan {0} since scan event '{1}' not found", scanNumber, SCAN_EVENT_MS2_ISOLATION_WIDTH);
                         continue;
                     }
 
-                    string agcTimeText;
-                    if (!scanInfo.TryGetScanEvent(SCAN_EVENT_ION_INJECTION_TIME, out agcTimeText, true))
+                    if (!scanInfo.TryGetScanEvent(SCAN_EVENT_ION_INJECTION_TIME, out var agcTimeText, true))
                     {
                         Console.WriteLine("Skipping scan {0} since scan event '{1}' not found", scanNumber, SCAN_EVENT_ION_INJECTION_TIME);
                         continue;
@@ -622,9 +617,9 @@ namespace InterDetect
 
         private void Interference(PrecursorIntense precursorInfo, XRawFileIO raw)
         {
-            double[,] spectraData2D;
 
-            raw.GetScanData2D(precursorInfo.PrecursorScanNumber, out spectraData2D, 0, true);
+            // Retrieve centroided data as a 2D array of m/z and intensity
+            raw.GetScanData2D(precursorInfo.PrecursorScanNumber, out var spectraData2D, 0, true);
 
             InterferenceCalculator.Interference(precursorInfo, spectraData2D);
         }

@@ -74,6 +74,8 @@ namespace InterDetect
         public event ProgressChangedHandler ProgressChanged;
         public delegate void ProgressChangedHandler(InterferenceDetector id, ProgressInfo e);
 
+        private readonly Dictionary<int, string> mFormatStrings;
+
         /// <summary>
         /// Constructor
         /// </summary>
@@ -81,6 +83,7 @@ namespace InterDetect
         {
             ShowProgressAtConsole = true;
             WorkDir = ".";
+            mFormatStrings = new Dictionary<int, string>();
         }
 
         /// <summary>
@@ -188,7 +191,7 @@ namespace InterDetect
                 return false;
             }
 
-            PrintInterference(lstPrecursorInfo, "000000", tempPrecFilePath);
+            ExportInterferenceScores(lstPrecursorInfo, "000000", tempPrecFilePath);
 
             Console.WriteLine("Process Complete");
             return true;
@@ -225,7 +228,7 @@ namespace InterDetect
                     throw new Exception("Error in PerformWork: ParentInfoPass returned null loading " + dctRawFiles[datasetID]);
                 }
 
-                PrintInterference(lstPrecursorInfo, datasetID, tempPrecFilePath);
+                ExportInterferenceScores(lstPrecursorInfo, datasetID, tempPrecFilePath);
 
                 if (ShowProgressAtConsole)
                     Console.WriteLine("Iteration Complete");
@@ -555,30 +558,61 @@ namespace InterDetect
         }
 
         /// <summary>
-        /// Print our table to a temporary file
+        /// Write out the interference scores to a temporary file
+        /// This data will be loaded into SQLite later
         /// </summary>
         /// <param name="lstPrecursorInfo"></param>
         /// <param name="datasetID">Id number is a string because thats what sql gives me and there
         /// is no point in switching it back and forth</param>
         /// <param name="filepath"></param>
-        private void PrintInterference(List<PrecursorIntense> lstPrecursorInfo, string datasetID, string filepath)
+        private void ExportInterferenceScores(IEnumerable<PrecursorIntense> lstPrecursorInfo, string datasetID, string filepath)
         {
             var fieldExistance = File.Exists(filepath);
             using (var sw = new StreamWriter(filepath, fieldExistance))
             {
                 if (!fieldExistance)
                 {
-                    sw.Write("Dataset_ID\tScanNumber\tPrecursorScan\tParentMZ\tChargeState\tIsoWidth\tInterference\tPreIntensity\tIonCollectionTime\n");
+                    sw.WriteLine("Dataset_ID\tScanNumber\tPrecursorScan\t" +
+                                 "ParentMZ\tChargeState\t" +
+                                 "IsoWidth\tInterference\t" +
+                                 "PreIntensity\tIonCollectionTime");
                 }
 
                 foreach (var info in lstPrecursorInfo)
                 {
-                    sw.Write(datasetID + "\t" + info.ScanNumber + "\t" + info.PrecursorScanNumber + "\t" +
-                        info.IsolationMass + "\t" + info.ChargeState + "\t" +
-                        info.IsolationWidth + "\t" + info.Interference + "\t" +
-                        info.PrecursorIntensity + "\t" + info.IonCollectionTime + "\n");
-                }
+                    sw.WriteLine(datasetID + "\t" +
+                                 info.ScanNumber + "\t" +
+                                 info.PrecursorScanNumber + "\t" +
+                                 NumToString(info.IsolationMass, 5) + "\t" +
+                                 info.ChargeState + "\t" +
+                                 NumToString(info.IsolationWidth, 3) + "\t" +
+                                 NumToString(info.Interference, 4) + "\t" +
+                                 NumToString(info.PrecursorIntensity, 2) + "\t" +
+                                 NumToString(info.IonCollectionTime, 2));
+                }/**/
             }
+        }
+
+        private string NumToString(double value, int digitsOfPrecision)
+        {
+            if (digitsOfPrecision == 0 && Math.Abs(value) <= double.Epsilon)
+                return "0";
+
+            if (!mFormatStrings.TryGetValue(digitsOfPrecision, out var formatString))
+            {
+                if (digitsOfPrecision < 1)
+                    formatString = "0";
+                else
+                    formatString = "0." + new string('0', digitsOfPrecision);
+
+                mFormatStrings.Add(digitsOfPrecision, formatString);
+            }
+
+            var valueText = value.ToString(formatString);
+            if (digitsOfPrecision > 0)
+                return valueText.TrimEnd('0').TrimEnd('.');
+
+            return valueText;
         }
 
         private void Interference(PrecursorIntense precursorInfo, XRawFileIO raw)
@@ -622,7 +656,7 @@ namespace InterDetect
                     Console.WriteLine(rawfiles[i] + " failed to load.  Deleting temp and aborting!");
                     return;
                 }
-                PrintInterference(lstPrecursorInfo, "number", @"C:\Users\aldr699\Documents\2012\iTRAQ\InterferenceTesting\DataInt" + i + "efz50.txt");
+                ExportInterferenceScores(lstPrecursorInfo, "number", @"C:\Users\aldr699\Documents\2012\iTRAQ\InterferenceTesting\DataInt" + i + "efz50.txt");
             }
         }
 
@@ -633,7 +667,7 @@ namespace InterDetect
             //List<PrecursorInfo> myInfo = ParentInfoPass(@"\\proto-9\VOrbiETD03\2011_4\E_ligno_SCF1_LX_pool_01_01Oct11_Lynx_11-09-28\E_ligno_SCF1_LX_pool_01_01Oct11_Lynx_11-09-28.raw", parentInfo);
             //Interference(ref myInfo, @"\\proto-9\VOrbiETD03\2011_4\E_ligno_SCF1_LX_pool_01_01Oct11_Lynx_11-09-28\E_ligno_SCF1_LX_pool_01_01Oct11_Lynx_11-09-28.raw");
 
-            //PrintInterference(myInfo, @"C:\Users\aldr699\Documents\2012\InterferenceTesting\here2.txt");
+            //ExportInterferenceScores(myInfo, @"C:\Users\aldr699\Documents\2012\InterferenceTesting\here2.txt");
         }
 
         #endregion

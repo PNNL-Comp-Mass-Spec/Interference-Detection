@@ -204,8 +204,32 @@ namespace InterDetect
 
             if (peaks.Count > 0)
             {
+
                 for (var j = 0; j < peaks.Count; j++)
                 {
+                    // Option 1 for determining if the observed peak is close to an expected m/z value
+                    /*
+                    var adjustedMz = peaks[j].Mz;
+                    while (adjustedMz < precursorInfo.ActualMass && precursorInfo.ActualMass - adjustedMz > massToleranceMz)
+                    {
+                        adjustedMz += C12_C13_MASS_DIFFERENCE / precursorInfo.ChargeState;
+                    }
+
+                    while (adjustedMz > precursorInfo.ActualMass && adjustedMz - precursorInfo.ActualMass > massToleranceMz)
+                    {
+                        adjustedMz -= C12_C13_MASS_DIFFERENCE / precursorInfo.ChargeState;
+                    }
+
+                    var deltaMzObserved = adjustedMz - precursorInfo.ActualMass;
+                    var massToleranceMz = PRECURSOR_ION_TOLERANCE_PPM * precursorInfo.ActualMass / 1E6;
+
+                    if (Math.Abs(deltaMzObserved) < massToleranceMz)
+                    {
+                        precursorIntensitySum += peaks[j].Abundance;
+                    }
+                    */
+
+                    // Option 2 for determining if the observed peak is close to an expected m/z value
                     var difference = (peaks[j].Mz - precursorInfo.ActualMass) * precursorInfo.ChargeState;
                     var differenceRounded = Math.Round(difference);
                     var expectedDifference = differenceRounded * C12_C13_MASS_DIFFERENCE;

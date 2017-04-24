@@ -212,6 +212,8 @@ namespace InterDetect
             Debug.Assert(fiDatabaseFile.DirectoryName != null, "fiDatabaseFile.DirectoryName != null");
             var tempPrecFilePath = Path.Combine(fiDatabaseFile.DirectoryName, "prec_info_temp.txt");
 
+            DeleteFile(tempPrecFilePath);
+
             foreach (var datasetID in dctRawFiles.Keys)
             {
                 if (!dctIsosFiles.ContainsKey(datasetID))
@@ -256,7 +258,10 @@ namespace InterDetect
                 throw new Exception("Error adding table t_precursor_interference to the SqLite database: " + ex.Message, ex);
             }
 
-            //cleanup
+            if (System.Net.Dns.GetHostName().ToLower().Contains("monroe"))
+                return true;
+
+            // Delete the file text file that was imported into SQLite
             DeleteFile(tempPrecFilePath);
 
             return true;

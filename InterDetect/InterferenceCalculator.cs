@@ -33,8 +33,10 @@ namespace InterDetect
             // Limit the number of peaks we convert to Peak objects to peaks that are within reasonable range of the isolation mass
             var min = 0;
             var max = spectraData2D.GetUpperBound(1) + 1;
+
             // Binary search for the low index
             var lowIndex = BinarySearch(ref spectraData2D, min, max, mzToFindLow);
+
             // TODO: Given the normal isolation widths, a linear search would likely be faster than the binary search
             // for finding the high index, when the starting point is the low index
             var highIndex = BinarySearch(ref spectraData2D, lowIndex, max, mzToFindHigh);
@@ -61,7 +63,9 @@ namespace InterDetect
 
                 if (precursorInfo.ChargeState <= 0)
                 {
-                    Console.WriteLine("Charge state for " + precursorInfo.IsolationMass + " in scan " + precursorInfo.ScanNumber + " not supplied, and could not guesstimate it. Giving bad score.");
+                    Console.WriteLine("Charge state for {0:F2} in scan {1} not supplied, and could not guesstimate it. " +
+                                      "Giving bad score.", precursorInfo.IsolationMass, precursorInfo.ScanNumber);
+
                     precursorInfo.Interference = 0;
                     return;
                 }
@@ -248,7 +252,7 @@ namespace InterDetect
             }
             else
             {
-                Console.WriteLine("Did not find the precursor for " + precursorInfo.IsolationMass + " in scan " + precursorInfo.ScanNumber);
+                Console.WriteLine("Did not find the precursor for {0:F2} in scan {1}", precursorInfo.IsolationMass, precursorInfo.ScanNumber);
             }
 
             precursorInfo.Interference = overallInterference;
@@ -260,7 +264,7 @@ namespace InterDetect
         /// <param name="spectraData2D">Array of centroided peak data of size [2,x], where [0,0] is first m/z and [1,0] is first intensity</param>
         /// <param name="lowIndex">Lowest index to convert</param>
         /// <param name="highIndex">Highest index to convert</param>
-        /// <returns></returns>
+        /// <returns>List of Peaks extracted from spectraData2D (between lowIndex and highIndex)</returns>
         public static List<Peak> ConvertToPeaks(ref double[,] spectraData2D, int lowIndex = 0, int highIndex = int.MaxValue)
         {
             var mzs = new List<Peak>();
@@ -277,6 +281,7 @@ namespace InterDetect
                         Mz = spectraData2D[0, i],
                         Abundance = spectraData2D[1, i]
                     });
+
                 }
             }
 

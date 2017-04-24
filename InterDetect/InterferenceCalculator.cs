@@ -82,8 +82,8 @@ namespace InterDetect
 
         private struct MassChargeData
         {
-            public double Mass;
-            public int Charge;
+            public readonly double Mass;
+            public readonly int Charge;
 
             public MassChargeData(double mass, int charge)
             {

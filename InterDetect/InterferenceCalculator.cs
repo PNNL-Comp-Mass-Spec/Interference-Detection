@@ -53,9 +53,12 @@ namespace InterDetect
         /// <param name="peakData">list of centroided peakData</param>
         public static void Interference(PrecursorInfo precursorInfo, List<Peak> peakData)
         {
+
             if (precursorInfo.ChargeState <= 0)
             {
-                precursorInfo.ChargeState = ChargeStateGuesstimator(precursorInfo.IsolationMass, peakData);
+                var newChargeState = ChargeStateGuesstimator(precursorInfo.IsolationMass, peakData);
+                precursorInfo.UpdateCharge(newChargeState);
+
                 if (precursorInfo.ChargeState <= 0)
                 {
                     Console.WriteLine("Charge state for " + precursorInfo.IsolationMass + " in scan " + precursorInfo.ScanNumber + " not supplied, and could not guesstimate it. Giving bad score.");

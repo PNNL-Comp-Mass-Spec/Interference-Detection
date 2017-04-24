@@ -407,7 +407,7 @@ namespace InterDetect
             var rawFileReader = new XRawFileIO();
 
             // Copy the raw file locally to reduce network traffic
-            var fileTools = new PRISM.Files.clsFileTools();
+            var fileTools = new PRISM.clsFileTools();
 
             // ReSharper disable once AssignNullToNotNullAttribute
             var rawFilePathLocal = Path.Combine(WorkDir, Path.GetFileName(rawFilePath));

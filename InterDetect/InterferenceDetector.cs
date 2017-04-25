@@ -581,6 +581,13 @@ namespace InterDetect
             }
             rawFileReader.CloseRawFile();
 
+            if (interferenceCalc.UnknownChargeCount > 0)
+            {
+                Console.WriteLine("Warning, charge could not be determined for {0:F1}% of the precursors ({1} / {2})",
+                    interferenceCalc.UnknownChargeCount / (double)lstPrecursorInfo.Count * 100,
+                    interferenceCalc.UnknownChargeCount, lstPrecursorInfo.Count);
+            }
+
             // Delete the locally cached raw file
             DeleteFile(rawFilePathLocal);
 

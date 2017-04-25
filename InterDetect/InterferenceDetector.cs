@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.IO;
 using Mage;
 using ThermoRawFileReader;
@@ -25,7 +24,7 @@ namespace InterDetect
 
         public override string ToString()
         {
-            return string.Format("{0:F2} m/z, intensity {1:F0}", Mz, Abundance);
+            return string.Format("{0:F4} m/z, intensity {1:F0}", Mz, Abundance);
         }
     };
 

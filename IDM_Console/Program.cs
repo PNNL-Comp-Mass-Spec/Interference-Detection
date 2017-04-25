@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using InterDetect;
 
 namespace IDM_Console
@@ -7,19 +8,53 @@ namespace IDM_Console
     {
         static void Main(string[] args)
         {
-            var workDir = "..";
-            var sourceFileName = "Results.db3";
+            var sourceFilePath = "??";
 
-            var idm = new InterferenceDetector {ShowProgressAtConsole = false};
+            try
+            {
 
-            idm.ProgressChanged += InterfenceDetectorProgressHandler;
+                var sourceFile = new FileInfo(InterferenceDetector.DEFAULT_RESULT_DATABASE_NAME);
+                if (sourceFile.Exists)
+                {
+                    sourceFilePath = sourceFile.FullName;
+                }
+                else
+                {
+                    sourceFile = new FileInfo(Path.Combine("..", InterferenceDetector.DEFAULT_RESULT_DATABASE_NAME));
+                    if (sourceFile.Exists)
+                    {
+                        sourceFilePath = sourceFile.FullName;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Could not find " + InterferenceDetector.DEFAULT_RESULT_DATABASE_NAME +
+                            " in the current directory or in the parent directory; aborting");
 
-            var success = idm.Run(workDir, sourceFileName);
+                        System.Threading.Thread.Sleep(2000);
+                        return;
+                    }
+                }
 
-            if (success)
-                Console.WriteLine("Success");
-            else
-                Console.WriteLine("Failed");
+                var idm = new InterferenceDetector { ShowProgressAtConsole = false };
+
+                idm.ProgressChanged += InterfenceDetectorProgressHandler;
+
+                var success = idm.Run(sourceFile.DirectoryName, sourceFile.Name);
+
+                if (success)
+                    Console.WriteLine("Success");
+                else
+                    Console.WriteLine("Failed");
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error processing " + sourceFilePath + ": " + ex.Message);
+                Console.WriteLine(PRISM.clsStackTraceFormatter.GetExceptionStackTraceMultiLine(ex));
+            }
+
+            System.Threading.Thread.Sleep(2000);
+
         }
 
         private static void InterfenceDetectorProgressHandler(InterferenceDetector id, ProgressInfo e)

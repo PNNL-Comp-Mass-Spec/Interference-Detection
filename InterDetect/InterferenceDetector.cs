@@ -173,6 +173,7 @@ namespace InterDetect
             //Calculate the needed info and generate a temporary file, keep adding each dataset to this file
             var tempPrecFilePath = outpath;
 
+            Console.WriteLine();
             Console.WriteLine("Processing file: " + Path.GetFileName(rawFilePath));
             List<PrecursorIntense> lstPrecursorInfo = null;
             try
@@ -225,7 +226,9 @@ namespace InterDetect
                 if (dctIsosFiles == null || !dctIsosFiles.TryGetValue(datasetID, out isosFilePath))
                     isosFilePath = string.Empty;
 
-                ++fileCountCurrent;
+                fileCountCurrent++;
+
+                Console.WriteLine();
                 Console.WriteLine("Processing file " + fileCountCurrent + " / " + dctRawFiles.Count + ": " + Path.GetFileName(dctRawFiles[datasetID]));
 
                 var lstPrecursorInfo = ParentInfoPass(fileCountCurrent, dctRawFiles.Count, dctRawFiles[datasetID], isosFilePath);
@@ -263,12 +266,11 @@ namespace InterDetect
             }
 
             if (System.Net.Dns.GetHostName().ToLower().Contains("monroe"))
-                return true;
+                return;
 
             // Delete the file text file that was imported into SQLite
             DeleteFile(tempPrecFilePath);
 
-            return true;
         }
 
         private void DeleteFile(string filePath)
@@ -328,7 +330,7 @@ namespace InterDetect
             }
             catch (Exception)
             {
-                Console.WriteLine("Table T_Results_Metadata_Typed not found; will look for  t_results_metadata");
+                Console.WriteLine("Table T_Results_Metadata_Typed not found; will look for t_results_metadata");
             }
 
             try

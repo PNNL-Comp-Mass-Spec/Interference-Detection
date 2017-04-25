@@ -484,6 +484,8 @@ namespace InterDetect
             if (scanEnd > numSpectra || scanEnd == 0)
                 scanEnd = numSpectra;
 
+            var interferenceCalc = new InterferenceCalculator();
+
             for (var scanNumber = scanStart; scanNumber <= scanEnd; scanNumber++)
             {
                 if (scanEnd > scanStart && (scanNumber - scanStart) / (double)(scanEnd - scanStart) > progressThreshold)
@@ -574,6 +576,7 @@ namespace InterDetect
                     precursorInfo.IonCollectionTime = ionCollectionTime;
                 }
 
+                ComputeInterference(interferenceCalc, precursorInfo, rawFileReader);
                 lstPrecursorInfo.Add(precursorInfo);
             }
             rawFileReader.CloseRawFile();
@@ -619,7 +622,7 @@ namespace InterDetect
                                  NumToString(info.Interference, 4) + "\t" +
                                  NumToString(info.PrecursorIntensity, 2) + "\t" +
                                  NumToString(info.IonCollectionTime, 2));
-                }/**/
+                }
             }
         }
 
@@ -645,7 +648,7 @@ namespace InterDetect
             return valueText;
         }
 
-        private void Interference(PrecursorIntense precursorInfo, XRawFileIO raw)
+        private void ComputeInterference(InterferenceCalculator interferenceCalc, PrecursorIntense precursorInfo, XRawFileIO raw)
         {
 
             if (mSpectraData2D == null || mCachedPrecursorScan != precursorInfo.PrecursorScanNumber)
@@ -656,7 +659,7 @@ namespace InterDetect
                 mCachedPrecursorScan = precursorInfo.PrecursorScanNumber;
             }
 
-            InterferenceCalculator.Interference(precursorInfo, mSpectraData2D);
+            interferenceCalc.Interference(precursorInfo, mSpectraData2D);
         }
 
     }

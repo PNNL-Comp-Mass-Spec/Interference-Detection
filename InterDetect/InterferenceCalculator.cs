@@ -94,6 +94,11 @@ namespace InterDetect
                 Mass = mass;
                 Charge = charge;
             }
+
+            public override string ToString()
+            {
+                return string.Format("{0}+ {1:F4} m/z", Charge, Mass);
+            }
         }
 
         /// <summary>
@@ -124,6 +129,7 @@ namespace InterDetect
 
             // One entry per charge; key=charge, value=sum of intensities of matching peaks
             var chargesAbund = new Dictionary<int, double>();
+
             // List of all masses to check, duplicates allowed
             var massesToCheck = new List<MassChargeData>();
 
@@ -134,6 +140,7 @@ namespace InterDetect
 
                 // Add the isolation mass for each charge being checked
                 massesToCheck.Add(new MassChargeData(isolationMass, i));
+
                 // Add all isotope masses to check for this charge
                 for (var j = 1; j <= NumIsotopesToCheckChargeGuess; j++)
                 {
@@ -180,6 +187,7 @@ namespace InterDetect
             }
 
             var mostIntense = chargesAbund.OrderByDescending(x => x.Value).First();
+
             // If the only peak m/z that was matched was the isolation mass, then we didn't find anything.
             if (mostIntense.Value.Equals(isoMassInt))
             {

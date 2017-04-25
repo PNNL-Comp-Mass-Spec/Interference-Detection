@@ -510,16 +510,17 @@ namespace InterDetect
                     continue;
                 }
 
+                int chargeState;
                 if (!scanInfo.TryGetScanEvent(SCAN_EVENT_CHARGE_STATE, out var chargeStateText, true))
                 {
-                    Console.WriteLine("Skipping scan {0} since scan event '{1}' not found", scanNumber, SCAN_EVENT_CHARGE_STATE);
-                    continue;
+                    Console.WriteLine("Warning, scan {0} does not have scan event '{1}'; will try to determine the charge empirically", scanNumber,
+                                      SCAN_EVENT_CHARGE_STATE);
+                    chargeState = 0;
                 }
-
-                if (!scanInfo.TryGetScanEvent(SCAN_EVENT_MONOISOTOPIC_MZ, out var monoMzText, true))
+                else
                 {
-                    Console.WriteLine("Skipping scan {0} since scan event '{1}' not found", scanNumber, SCAN_EVENT_MONOISOTOPIC_MZ);
-                    continue;
+                    if (!int.TryParse(chargeStateText, out chargeState))
+                        chargeState = 0;
                 }
 
                 if (!scanInfo.TryGetScanEvent(SCAN_EVENT_MS2_ISOLATION_WIDTH, out var isolationWidthText, true))
@@ -528,13 +529,7 @@ namespace InterDetect
                     continue;
                 }
 
-                if (!scanInfo.TryGetScanEvent(SCAN_EVENT_ION_INJECTION_TIME, out var agcTimeText, true))
-                {
-                    Console.WriteLine("Skipping scan {0} since scan event '{1}' not found", scanNumber, SCAN_EVENT_ION_INJECTION_TIME);
-                    continue;
-                }
-
-                var chargeState = Convert.ToInt32(chargeStateText);
+                scanInfo.TryGetScanEvent(SCAN_EVENT_ION_INJECTION_TIME, out var agcTimeText, true);
 
                 double mz;
                 if (Math.Abs(scanInfo.ParentIonMZ) < 1e-6)
@@ -547,23 +542,28 @@ namespace InterDetect
                 }
 
                 var isolationWidth = Convert.ToDouble(isolationWidthText);
+
                 if (chargeState == 0)
                 {
-                    if (!isos.GetChargeState(currPrecScan, mz, ref chargeState))
-                    {
-                        // Unable to determine the charge state; skip this scan
-                        continue;
-                    }
+                    // In some cases the raw file fails to provide a charge state, if that is the case
+                    // check the isos file to see if DeconTools could figure it out.
+                    isosReader?.GetChargeState(currPrecScan, mz, ref chargeState);
                 }
+
+                // chargeState might still be 0; that's OK
+                // InterferenceCalculator.Interference will try to determine it
 
                 var precursorInfo = new PrecursorIntense(mz, isolationWidth, chargeState)
                 {
                     ScanNumber = scanNumber,
-                    PrecursorScanNumber = currPrecScan,
-                    IonCollectionTime = Convert.ToDouble(agcTimeText)
+                    PrecursorScanNumber = currPrecScan
                 };
 
-                Interference(precursorInfo, rawFileReader);
+                if (!string.IsNullOrEmpty(agcTimeText) && double.TryParse(agcTimeText, out var ionCollectionTime))
+                {
+                    precursorInfo.IonCollectionTime = ionCollectionTime;
+                }
+
                 lstPrecursorInfo.Add(precursorInfo);
             }
             rawFileReader.CloseRawFile();

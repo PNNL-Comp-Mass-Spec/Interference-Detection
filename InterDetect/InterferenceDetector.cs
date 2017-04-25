@@ -77,6 +77,9 @@ namespace InterDetect
 
         private readonly Dictionary<int, string> mFormatStrings;
 
+        private double[,] mSpectraData2D;
+        private int mCachedPrecursorScan;
+
         /// <summary>
         /// Constructor
         /// </summary>
@@ -616,10 +619,15 @@ namespace InterDetect
         private void Interference(PrecursorIntense precursorInfo, XRawFileIO raw)
         {
 
-            // Retrieve centroided data as a 2D array of m/z and intensity
-            raw.GetScanData2D(precursorInfo.PrecursorScanNumber, out var spectraData2D, 0, true);
+            if (mSpectraData2D == null || mCachedPrecursorScan != precursorInfo.PrecursorScanNumber)
+            {
+                // Retrieve centroided data as a 2D array of m/z and intensity
+                raw.GetScanData2D(precursorInfo.PrecursorScanNumber, out mSpectraData2D, 0, true);
 
-            InterferenceCalculator.Interference(precursorInfo, spectraData2D);
+                mCachedPrecursorScan = precursorInfo.PrecursorScanNumber;
+            }
+
+            InterferenceCalculator.Interference(precursorInfo, mSpectraData2D);
         }
 
     }

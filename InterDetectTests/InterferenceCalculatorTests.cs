@@ -168,7 +168,8 @@ namespace InterDetectTests
 
             var precursorInfo = new PrecursorInfo(isolationMass, isolationWidth, chargeState);
 
-            InterferenceCalculator.Interference(precursorInfo, peakList);
+            var interferenceCalc = new InterferenceCalculator();
+            interferenceCalc.Interference(precursorInfo, peakList);
 
             Assert.AreEqual(expectedInterference, precursorInfo.Interference, 0.01,
                             "Computed inteference did not match expected: {0:F4} vs. {1:F4}", expectedInterference, precursorInfo.Interference);

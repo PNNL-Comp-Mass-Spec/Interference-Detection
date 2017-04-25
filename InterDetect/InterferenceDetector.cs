@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using NUnit.Framework;
 using System.IO;
 using Mage;
 using ThermoRawFileReader;
@@ -51,6 +50,8 @@ namespace InterDetect
     /// </summary>
     public class InterferenceDetector
     {
+        public const string DEFAULT_RESULT_DATABASE_NAME = "Results.db3";
+
         private const string raw_ext = ".raw";
         private const string isos_ext = "_isos.csv";
 
@@ -93,7 +94,7 @@ namespace InterDetect
         /// <param name="datapath">directory to the database, assumed that database is called Results.db3</param>
         public bool Run(string datapath)
         {
-            return Run(datapath, "Results.db3");
+            return Run(datapath, DEFAULT_RESULT_DATABASE_NAME);
         }
 
         /// <summary>
@@ -562,7 +563,7 @@ namespace InterDetect
         /// <param name="datasetID">Id number is a string because thats what sql gives me and there
         /// is no point in switching it back and forth</param>
         /// <param name="filepath"></param>
-        private void ExportInterferenceScores(IEnumerable<PrecursorIntense> lstPrecursorInfo, string datasetID, string filepath)
+        public void ExportInterferenceScores(IEnumerable<PrecursorIntense> lstPrecursorInfo, string datasetID, string filepath)
         {
             var fieldExistance = File.Exists(filepath);
             using (var sw = new StreamWriter(filepath, fieldExistance))

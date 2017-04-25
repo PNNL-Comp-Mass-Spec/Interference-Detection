@@ -534,7 +534,17 @@ namespace InterDetect
                 double mz;
                 if (Math.Abs(scanInfo.ParentIonMZ) < 1e-6)
                 {
-                    mz = Convert.ToDouble(monoMzText);
+                    if (!scanInfo.TryGetScanEvent(SCAN_EVENT_MONOISOTOPIC_MZ, out var monoMzText, true))
+                    {
+                        Console.WriteLine("Skipping scan {0} since scan event '{1}' not found", scanNumber, SCAN_EVENT_MONOISOTOPIC_MZ);
+                        continue;
+                    }
+
+                    if (!double.TryParse(monoMzText, out mz))
+                    {
+                        Console.WriteLine("Skipping scan {0} since scan event '{1}' was not a number: {2}", scanNumber, SCAN_EVENT_MONOISOTOPIC_MZ, monoMzText);
+                        continue;
+                    }
                 }
                 else
                 {

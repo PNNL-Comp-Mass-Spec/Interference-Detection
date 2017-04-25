@@ -242,13 +242,13 @@ namespace InterDetect
                     {
 
                         var dataValues = line.Split(splitChars);
-                        var isosEntry = new IsosData
-                        {
-                            Abundance = GetValueDbl(dataValues, abundanceColIndex, 0),
-                            Mz = GetValueDbl(dataValues, mzColIndex, 0),
-                            ScanNum = GetValueInt(dataValues, scanColIndex, 0),
-                            Charge = GetValueInt(dataValues, chargeColndex, 0)
-                        };
+
+                        var abundance = GetValueDbl(dataValues, abundanceColIndex, 0);
+                        var mz = GetValueDbl(dataValues, mzColIndex, 0);
+                        var scan = GetValueInt(dataValues, scanColIndex, 0);
+                        var charge = GetValueInt(dataValues, chargeColndex, 0);
+
+                        var isosEntry = new IsosData(scan, mz, abundance, charge);
 
                         lstIsosData.Add(isosEntry);
                     }

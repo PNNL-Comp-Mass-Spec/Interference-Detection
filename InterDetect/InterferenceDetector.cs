@@ -278,10 +278,9 @@ namespace InterDetect
                 if (File.Exists(filePath))
                     File.Delete(filePath);
             }
-            // ReSharper disable once EmptyGeneralCatchClause
-            catch
+            catch (Exception ex)
             {
-                // Ignore errors here
+                Console.WriteLine("Error deleting locally cached file " + filePath + ": " + ex.Message);
             }
         }
 
@@ -413,17 +412,34 @@ namespace InterDetect
             // Copy the raw file locally to reduce network traffic
             var fileTools = new PRISM.clsFileTools();
 
-            // ReSharper disable once AssignNullToNotNullAttribute
-            var rawFilePathLocal = Path.Combine(WorkDir, Path.GetFileName(rawFilePath));
+            var remoteRawFile = new FileInfo(rawFilePath);
+            var remoteIsosFile = new FileInfo(isosFilePath);
 
-            // ReSharper disable once AssignNullToNotNullAttribute
-            var isosFilePathLocal = Path.Combine(WorkDir, Path.GetFileName(isosFilePath));
+            if (!remoteRawFile.Exists)
+            {
+                throw new FileNotFoundException(remoteRawFile.FullName);
+            }
+
+            if (!remoteIsosFile.Exists)
+            {
+                throw new FileNotFoundException(remoteIsosFile.FullName);
+            }
+
+            var rawFilePathLocal = Path.Combine(WorkDir, remoteRawFile.Name);
+
+            var isosFilePathLocal = Path.Combine(WorkDir, remoteIsosFile.Name);
 
             if (!string.Equals(rawFilePath, rawFilePathLocal))
-                fileTools.CopyFileUsingLocks(rawFilePath, rawFilePathLocal, "IDM");
+            {
+                Console.WriteLine("Copying {0} to the local computer", remoteRawFile.FullName);
+                fileTools.CopyFileUsingLocks(remoteRawFile.FullName, rawFilePathLocal, "IDM");
+            }
 
             if (!string.Equals(isosFilePath, isosFilePathLocal))
-                fileTools.CopyFileUsingLocks(isosFilePath, isosFilePathLocal, "IDM");
+            {
+                Console.WriteLine("Copying {0} to the local computer", remoteIsosFile.FullName);
+                fileTools.CopyFileUsingLocks(remoteIsosFile.FullName, isosFilePathLocal, "IDM");
+            }
 
             var worked = rawFileReader.OpenRawFile(rawFilePathLocal);
             if (!worked)
@@ -536,24 +552,10 @@ namespace InterDetect
             rawFileReader.CloseRawFile();
 
             // Delete the locally cached raw file
-            try
-            {
-                File.Delete(rawFilePathLocal);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error deleting locally cached raw file " + rawFilePathLocal + ": " + ex.Message);
-            }
+            DeleteFile(rawFilePathLocal);
 
             // Delete the locally cached isos file
-            try
-            {
-                File.Delete(isosFilePathLocal);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error deleting locally cached isos file " + isosFilePathLocal + ": " + ex.Message);
-            }
+            DeleteFile(isosFilePathLocal);
 
             return lstPrecursorInfo;
         }

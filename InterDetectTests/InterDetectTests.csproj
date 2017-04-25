@@ -41,7 +41,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CustomTests.cs" />
     <Compile Include="InterferenceCalculatorTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -49,12 +48,21 @@
     <PackageReference Include="NUnit">
       <Version>3.6.1</Version>
     </PackageReference>
+    <PackageReference Include="PRISM-Library">
+      <Version>1.0.2</Version>
+    </PackageReference>
+    <PackageReference Include="System.Data.SQLite.Core">
+      <Version>1.0.97</Version>
+    </PackageReference>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\InterDetect\InterDetect.csproj">
       <Project>{7cbe9a82-3cf0-42dc-b5e8-52e8c3388be8}</Project>
       <Name>InterDetect</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

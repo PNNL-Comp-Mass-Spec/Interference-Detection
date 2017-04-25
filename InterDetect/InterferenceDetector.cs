@@ -147,16 +147,13 @@ namespace InterDetect
             {
                 success = LookupDeconToolsInfo(reader, out dctIsosFiles);
                 if (!success)
-                    return false;
+                {
+                    // DeconIsos file not found; this is not a critical error
+                }
             }
             catch (Exception ex)
             {
                 throw new Exception("Error calling LookupDeconToolsInfo: " + ex.Message, ex);
-            }
-
-            if (dctIsosFiles.Count != dctRawFiles.Count)
-            {
-                throw new Exception("Error in InterferenceDetector.Run: isosPaths.count <> filePaths.count (" + dctIsosFiles.Count + " vs. " + dctRawFiles.Count + ")");
             }
 
             try
@@ -205,9 +202,9 @@ namespace InterDetect
         /// </summary>
         /// <param name="fiDatabaseFile"></param>
         /// <param name="dctRawFiles">Keys are dataset names; values are the path to the .raw file</param>
-        /// <param name="dctIsosFiles">KKeys are dataset names; values are the path to the _isos.csv file</param>
-        /// <returns></returns>
-        private bool PerformWork(FileInfo fiDatabaseFile, Dictionary<string, string> dctRawFiles, Dictionary<string, string> dctIsosFiles)
+        /// <param name="dctIsosFiles">Keys are dataset names; values are the path to the _isos.csv file</param>
+        /// <remarks>dctIsosFiles can be null or empty since Isos files are not required</remarks>
+        private void PerformWork(FileInfo fiDatabaseFile, IReadOnlyDictionary<string, string> dctRawFiles, IReadOnlyDictionary<string, string> dctIsosFiles)
         {
             var fileCountCurrent = 0;
 
@@ -219,15 +216,14 @@ namespace InterDetect
 
             foreach (var datasetID in dctRawFiles.Keys)
             {
-                if (!dctIsosFiles.ContainsKey(datasetID))
-                {
-                    throw new Exception("Error in PerformWork: Dataset '" + datasetID + "' not found in isosPaths dictionary");
-                }
+                string isosFilePath;
+                if (dctIsosFiles == null || !dctIsosFiles.TryGetValue(datasetID, out isosFilePath))
+                    isosFilePath = string.Empty;
 
                 ++fileCountCurrent;
                 Console.WriteLine("Processing file " + fileCountCurrent + " / " + dctRawFiles.Count + ": " + Path.GetFileName(dctRawFiles[datasetID]));
 
-                var lstPrecursorInfo = ParentInfoPass(fileCountCurrent, dctRawFiles.Count, dctRawFiles[datasetID], dctIsosFiles[datasetID]);
+                var lstPrecursorInfo = ParentInfoPass(fileCountCurrent, dctRawFiles.Count, dctRawFiles[datasetID], isosFilePath);
                 if (lstPrecursorInfo == null)
                 {
                     throw new Exception("Error in PerformWork: ParentInfoPass returned null loading " + dctRawFiles[datasetID]);
@@ -272,6 +268,9 @@ namespace InterDetect
 
         private void DeleteFile(string filePath)
         {
+            if (string.IsNullOrWhiteSpace(filePath))
+                return;
+
             try
             {
                 if (File.Exists(filePath))
@@ -417,32 +416,18 @@ namespace InterDetect
             var fileTools = new PRISM.clsFileTools();
 
             var remoteRawFile = new FileInfo(rawFilePath);
-            var remoteIsosFile = new FileInfo(isosFilePath);
 
             if (!remoteRawFile.Exists)
             {
                 throw new FileNotFoundException(remoteRawFile.FullName);
             }
 
-            if (!remoteIsosFile.Exists)
-            {
-                throw new FileNotFoundException(remoteIsosFile.FullName);
-            }
-
             var rawFilePathLocal = Path.Combine(WorkDir, remoteRawFile.Name);
-
-            var isosFilePathLocal = Path.Combine(WorkDir, remoteIsosFile.Name);
 
             if (!string.Equals(rawFilePath, rawFilePathLocal))
             {
                 Console.WriteLine("Copying {0} to the local computer", remoteRawFile.FullName);
                 fileTools.CopyFileUsingLocks(remoteRawFile.FullName, rawFilePathLocal, "IDM");
-            }
-
-            if (!string.Equals(isosFilePath, isosFilePathLocal))
-            {
-                Console.WriteLine("Copying {0} to the local computer", remoteIsosFile.FullName);
-                fileTools.CopyFileUsingLocks(remoteIsosFile.FullName, isosFilePathLocal, "IDM");
             }
 
             var worked = rawFileReader.OpenRawFile(rawFilePathLocal);
@@ -451,7 +436,39 @@ namespace InterDetect
                 throw new Exception("File failed to open .Raw file in ParentInfoPass: " + rawFilePathLocal);
             }
 
-            var isos = new IsosHandler(isosFilePathLocal);
+            string isosFilePathLocal;
+            IsosHandler isosReader;
+
+            if (string.IsNullOrEmpty(isosFilePath))
+            {
+                isosFilePathLocal = "";
+                isosReader = null;
+            }
+            else
+            {
+                var remoteIsosFile = new FileInfo(isosFilePath);
+                if (!remoteIsosFile.Exists)
+                {
+                    Console.WriteLine("Warning, remote isos file not found: " + remoteIsosFile.FullName);
+                    Console.WriteLine("If a precursor ion's charge is reported as 0 by the Thermo reader, we will try to determine it empirically");
+                    isosFilePathLocal = "";
+                    isosReader = null;
+                }
+                else
+                {
+
+                    isosFilePathLocal = Path.Combine(WorkDir, remoteIsosFile.Name);
+
+                    if (!string.Equals(isosFilePath, isosFilePathLocal))
+                    {
+                        Console.WriteLine("Copying {0} to the local computer", remoteIsosFile.FullName);
+                        fileTools.CopyFileUsingLocks(remoteIsosFile.FullName, isosFilePathLocal, "IDM");
+                    }
+
+                    isosReader = new IsosHandler(isosFilePathLocal);
+                }
+
+            }
 
             var lstPrecursorInfo = new List<PrecursorIntense>();
             var numSpectra = rawFileReader.GetNumScans();
@@ -482,9 +499,10 @@ namespace InterDetect
                     progressThreshold += .05;
                 }
 
-                var msorder = isos.IsParentScan(scanNumber) ? 1 : 2;
 
                 rawFileReader.GetScanInfo(scanNumber, out clsScanInfo scanInfo);
+
+                var msorder = scanInfo.MSLevel;
 
                 if (msorder <= 1)
                 {
@@ -553,7 +571,7 @@ namespace InterDetect
             // Delete the locally cached raw file
             DeleteFile(rawFilePathLocal);
 
-            // Delete the locally cached isos file
+            // Delete the locally cached isos file (if it exists)
             DeleteFile(isosFilePathLocal);
 
             return lstPrecursorInfo;

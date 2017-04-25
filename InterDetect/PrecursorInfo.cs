@@ -7,9 +7,9 @@
     {
         public double IsolationMass { get; private set; }
 
-        public int ChargeState { get; private set; }
-
         public double IsolationWidth { get; private set; }
+
+        public int ChargeState { get; private set; }
 
         /// <summary>
         /// Interference score: fraction of observed peaks that are from the precursor
@@ -32,11 +32,14 @@
         /// <summary>
         /// Constructor
         /// </summary>
-        public PrecursorInfo(double isolationMass, int chargeState, double isolationWidth)
+        /// <param name="isolationMass">Parent ion m/z</param>
+        /// <param name="isolationWidth">Isolation window (full width)</param>
+        /// <param name="chargeState">Charge state; 0 if unknown</param>
+        public PrecursorInfo(double isolationMass, double isolationWidth, int chargeState)
         {
             IsolationMass = isolationMass;
-            ChargeState = chargeState;
             IsolationWidth = isolationWidth;
+            ChargeState = chargeState;
         }
 
         public void UpdateCharge(int newChargeState)
@@ -73,8 +76,11 @@
         /// <summary>
         /// Constructor
         /// </summary>
-        public PrecursorIntense(double isolationMass, int chargeState, double isolationWidth)
-            : base(isolationMass, chargeState, isolationWidth)
+        /// <param name="isolationMass">Parent ion m/z</param>
+        /// <param name="isolationWidth">Isolation window (full width)</param>
+        /// <param name="chargeState">Charge state; 0 if unknown</param>
+        public PrecursorIntense(double isolationMass, double isolationWidth, int chargeState)
+            : base(isolationMass, isolationWidth, chargeState)
         {
         }
 

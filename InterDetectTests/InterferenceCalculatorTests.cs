@@ -98,26 +98,26 @@ namespace InterDetectTests
                 }
             };
 
-            var data = new List<PrecursorInfo>();
-            data.Add(new PrecursorInfo(428.9168, 3, 2.0) {ActualMass = 428.5828});
-            data.Add(new PrecursorInfo(436.5596, 3, 2.0) {ActualMass = 436.5596});
-            data.Add(new PrecursorInfo(443.7350, 2, 2.0) {ActualMass = 443.7351});
-            data.Add(new PrecursorInfo(450.8925, 3, 2.0) {ActualMass = 450.8925});
-            data.Add(new PrecursorInfo(454.7563, 2, 2.0) {ActualMass = 454.7563});
-            data.Add(new PrecursorInfo(457.2725, 4, 2.0) {ActualMass = 457.2725});
-            data.Add(new PrecursorInfo(474.7589, 2, 2.0) {ActualMass = 474.7588});
-            data.Add(new PrecursorInfo(534.3016, 3, 2.0) {ActualMass = 534.3016});
-            data.Add(new PrecursorInfo(642.3702, 2, 2.0) {ActualMass = 642.3702});
-            data.Add(new PrecursorInfo(720.3926, 1, 2.0) {ActualMass = 720.3926});
-            data.Add(new PrecursorInfo(800.9453, 2, 2.0) {ActualMass = 800.9453});
-            data.Add(new PrecursorInfo(857.4833, 1, 2.0) {ActualMass = 857.4835});
-            data.Add(new PrecursorInfo(880.3828, 1, 2.0) {ActualMass = 880.3826});
-            data.Add(new PrecursorInfo(989.4995, 1, 2.0) {ActualMass = 989.4995});
-            data.Add(new PrecursorInfo(1108.5516, 1, 2.0) { ActualMass = 1108.5516 });
-
-            // Test: Not determined by Thermo
-            data.Add(new PrecursorInfo(447.7539, -1, 2.0));
-            data.Add(new PrecursorInfo(449.2640, -1, 2.0));
+            var data = new List<PrecursorInfo>
+            {
+                new PrecursorInfo(428.9168, 2.0, 3) {ActualMass = 428.5828},
+                new PrecursorInfo(436.5596, 2.0, 3) {ActualMass = 436.5596},
+                new PrecursorInfo(443.7350, 2.0, 2) {ActualMass = 443.7351},
+                new PrecursorInfo(450.8925, 2.0, 3) {ActualMass = 450.8925},
+                new PrecursorInfo(454.7563, 2.0, 2) {ActualMass = 454.7563},
+                new PrecursorInfo(457.2725, 2.0, 4) {ActualMass = 457.2725},
+                new PrecursorInfo(474.7589, 2.0, 2) {ActualMass = 474.7588},
+                new PrecursorInfo(534.3016, 2.0, 3) {ActualMass = 534.3016},
+                new PrecursorInfo(642.3702, 2.0, 2) {ActualMass = 642.3702},
+                new PrecursorInfo(720.3926, 2.0, 1) {ActualMass = 720.3926},
+                new PrecursorInfo(800.9453, 2.0, 2) {ActualMass = 800.9453},
+                new PrecursorInfo(857.4833, 2.0, 1) {ActualMass = 857.4835},
+                new PrecursorInfo(880.3828, 2.0, 1) {ActualMass = 880.3826},
+                new PrecursorInfo(989.4995, 2.0, 1) {ActualMass = 989.4995},
+                new PrecursorInfo(1108.5516, 2.0, 1) {ActualMass = 1108.5516},
+                new PrecursorInfo(447.7539, 2.0, -1),
+                new PrecursorInfo(449.2640, 2.0, -1)
+            };
 
             var peakList = InterferenceCalculator.ConvertToPeaks(ref peakData);
             foreach (var pre in data)

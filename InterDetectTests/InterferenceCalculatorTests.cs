@@ -131,6 +131,52 @@ namespace InterDetectTests
             }
         }
 
+        [Test] [TestCase(641.68, 2, 3, 0.9498275,
+            "639.7077,167199|640.0714,169516|640.3343,156139|640.3762,123602|640.6768,194863|640.7348,103064|640.8257,133304|641.0148,2440679|641.3479,2129230|641.6791,883178|641.8780,86945|642.0114,459777|642.3540,207854|642.8660,169017|643.3537,222952|643.6028,221999|")]
+        [TestCase(583.66, 2, 3, 0.360472,
+            "581.6601,172507|581.8665,452705|581.9954,151606|582.3293,4048004|582.6630,3479459|582.9980,2128995|583.3313,1151475|583.6556,1625434|583.8265,102997|583.9895,1482809|584.0642,65116|584.3242,796772|584.6605,456975|584.7721,153606|584.8549,100397|584.9973,1992716|585.2829,71041|585.3314,1901800|585.5741,65218|585.6661,770890|")]
+        public void TestInterferenceCalculator(
+            double isolationMass, double isolationWidth,
+            int chargeState, double expectedInterference,
+            string peaks)
+        {
+            // Extract the data from peaks
+            var peaksToParse = peaks.Split('|');
+            var peakList = new List<Peak>();
+
+            foreach (var peak in peaksToParse)
+            {
+                var charIndex = peak.IndexOf(',');
+                if (charIndex <= 0)
+                    continue;
+
+                var mzText = peak.Substring(0, charIndex);
+                var intensityText = peak.Substring(charIndex + 1);
+
+                if (!double.TryParse(mzText, out var mz))
+                    continue;
+
+                if (double.TryParse(intensityText, out var intensity))
+                {
+                    var newPeak = new Peak {
+                        Mz = mz,
+                        Abundance = intensity};
+
+                    peakList.Add(newPeak);
+                }
+            }
+
+            var precursorInfo = new PrecursorInfo(isolationMass, isolationWidth, chargeState);
+
+            InterferenceCalculator.Interference(precursorInfo, peakList);
+
+            Assert.AreEqual(expectedInterference, precursorInfo.Interference, 0.01,
+                            "Computed inteference did not match expected: {0:F4} vs. {1:F4}", expectedInterference, precursorInfo.Interference);
+
+            Console.WriteLine("Computed inteference score of {0:F3} for {1:F4} m/z, charge {2}",
+                precursorInfo.Interference, precursorInfo.IsolationMass, precursorInfo.ChargeState);
+        }
+
         [Test]
         [TestCase(@"\\Proto-5\VOrbiETD02\2012_2", "Sample_4065_iTRAQ", "DLS201204031741_Auto822622", 20007, 21000,
             "20100=0.4913|20125=0.9613|20150=0.3088|20175=0.8689|20200=0.5874|20275=0.4388|20300=0.8917|20325=1|20350=0.959|20375=0.915|20400=0.5616|20425=0.9258|20450=0.9929|20500=0.4717|20550=0.9512|20575=0.8419|20675=1|20725=1|20750=1|20775=0.8774|20800=0.8458|20825=1|20850=0.5537|20900=0.947|20950=1|20975=0.8914|21000=1|")]

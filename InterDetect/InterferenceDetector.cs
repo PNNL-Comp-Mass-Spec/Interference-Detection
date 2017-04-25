@@ -209,8 +209,13 @@ namespace InterDetect
             var fileCountCurrent = 0;
 
             //Calculate the needed info and generate a temporary file, keep adding each dataset to this file
-            Debug.Assert(fiDatabaseFile.DirectoryName != null, "fiDatabaseFile.DirectoryName != null");
-            var tempPrecFilePath = Path.Combine(fiDatabaseFile.DirectoryName, "prec_info_temp.txt");
+
+            string tempPrecFilePath;
+
+            if (fiDatabaseFile.DirectoryName == null)
+                tempPrecFilePath = "prec_info_temp.txt";
+            else
+                tempPrecFilePath = Path.Combine(fiDatabaseFile.DirectoryName, "prec_info_temp.txt");
 
             DeleteFile(tempPrecFilePath);
 

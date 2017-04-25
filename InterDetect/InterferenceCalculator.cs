@@ -13,12 +13,22 @@ namespace InterDetect
         private const int NumIsotopesToCheckChargeGuess = 2;
         private const double DataBufferChargeGuess = C12_C13_MASS_DIFFERENCE * (NumIsotopesToCheckChargeGuess + 1);
 
+        public int UnknownChargeCount { get; private set; }
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        public InterferenceCalculator()
+        {
+            UnknownChargeCount = 0;
+        }
+
         /// <summary>
         /// Calculate the interference for the scan based on the provided data
         /// </summary>
         /// <param name="precursorInfo">Precursor info: must set IsolationMass, ChargeState, IsolationWidth</param>
         /// <param name="spectraData2D">Array of centroided peak data of size [2,x], where [0,0] is first m/z and [1,0] is first intensity</param>
-        public static void Interference(PrecursorInfo precursorInfo, double[,] spectraData2D)
+        public void Interference(PrecursorInfo precursorInfo, double[,] spectraData2D)
         {
             var mzToFindLow = precursorInfo.IsolationMass - (precursorInfo.IsolationWidth);
             var mzToFindHigh = precursorInfo.IsolationMass + (precursorInfo.IsolationWidth);
@@ -53,7 +63,7 @@ namespace InterDetect
         /// </summary>
         /// <param name="precursorInfo">Precursor info: must set IsolationMass, ChargeState, IsolationWidth</param>
         /// <param name="peakData">list of centroided peakData</param>
-        public static void Interference(PrecursorInfo precursorInfo, List<Peak> peakData)
+        public void Interference(PrecursorInfo precursorInfo, List<Peak> peakData)
         {
 
             if (precursorInfo.ChargeState <= 0)
@@ -63,9 +73,13 @@ namespace InterDetect
 
                 if (precursorInfo.ChargeState <= 0)
                 {
-                    Console.WriteLine("Charge state for {0:F2} in scan {1} not supplied, and could not guesstimate it. " +
-                                      "Giving bad score.", precursorInfo.IsolationMass, precursorInfo.ScanNumber);
+                    if (UnknownChargeCount <= 15)
+                    {
+                        Console.WriteLine("Warning, charge state for {0:F2} in scan {1} not supplied, and could not guesstimate it. " +
+                                          "Giving bad score.", precursorInfo.IsolationMass, precursorInfo.ScanNumber);
+                    }
 
+                    UnknownChargeCount++;
                     precursorInfo.Interference = 0;
                     return;
                 }
@@ -202,7 +216,7 @@ namespace InterDetect
         /// </summary>
         /// <param name="precursorInfo"></param>
         /// <param name="peaks"></param>
-        private static void InterferenceCalculation(PrecursorInfo precursorInfo, List<Peak> peaks)
+        private void InterferenceCalculation(PrecursorInfo precursorInfo, List<Peak> peaks)
         {
             const double PRECURSOR_ION_TOLERANCE_PPM = 15.0;
 
@@ -304,7 +318,7 @@ namespace InterDetect
         /// <param name="max"></param>
         /// <param name="mzToFind"></param>
         /// <returns></returns>
-        private static int BinarySearch(ref double[,] spectraData2D, int min, int max, double mzToFind)
+        private int BinarySearch(ref double[,] spectraData2D, int min, int max, double mzToFind)
         {
             const double tol = 0.1;
             var mid = 0;
@@ -341,7 +355,7 @@ namespace InterDetect
         /// </summary>
         /// <param name="precursorInfo"></param>
         /// <param name="peaks"></param>
-        private static void ClosestToTarget(PrecursorInfo precursorInfo, IEnumerable<Peak> peaks)
+        private void ClosestToTarget(PrecursorInfo precursorInfo, IEnumerable<Peak> peaks)
         {
             var closest = 100000.0;
             var abund = 0.0;
@@ -370,7 +384,7 @@ namespace InterDetect
         /// <param name="lowMz"></param>
         /// <param name="highMz"></param>
         /// <param name="peaks"></param>
-        private static List<Peak> FilterPeaksByMZ(double lowMz, double highMz, IEnumerable<Peak> peaks)
+        private List<Peak> FilterPeaksByMZ(double lowMz, double highMz, IEnumerable<Peak> peaks)
         {
             return peaks.Where(x => lowMz < x.Mz && x.Mz < highMz).OrderBy(x => x.Mz).ToList();
         }

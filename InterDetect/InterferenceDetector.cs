@@ -404,8 +404,13 @@ namespace InterDetect
         /// <param name="fileCountTotal">Total number of dataset files to process</param>
         /// <param name="rawFilePath">Path to the the .Raw file</param>
         /// <param name="isosFilePath">Path to the _isos.csv file</param>
+        /// <param name="scanStart">Start scan; 0 to start at scan 1</param>
+        /// <param name="scanEnd">End scan; 0 to process from scanStart to the end</param>
         /// <returns>Precursor info list</returns>
-        public List<PrecursorIntense> ParentInfoPass(int fileCountCurrent, int fileCountTotal, string rawFilePath, string isosFilePath)
+        public List<PrecursorIntense> ParentInfoPass(
+            int fileCountCurrent, int fileCountTotal,
+            string rawFilePath, string isosFilePath,
+            int scanStart = 0, int scanEnd = 0)
         {
             var rawFileReader = new XRawFileIO();
 
@@ -452,27 +457,30 @@ namespace InterDetect
             var lstPrecursorInfo = new List<PrecursorIntense>();
             var numSpectra = rawFileReader.GetNumScans();
 
-            //TODO: Add error code for 0 spectra
             var currPrecScan = 0;
+
             //Go into each scan and collect precursor info.
-            var sr = 0.0;
+            var progressThreshold = 0.0;
 
-            const int scanStart = 1;
-            var scanEnd = numSpectra;
+            if (scanStart < 1)
+                scanStart = 1;
 
-            for (var scanNumber = 1; scanNumber <= scanEnd; scanNumber++)
+            if (scanEnd > numSpectra || scanEnd == 0)
+                scanEnd = numSpectra;
+
+            for (var scanNumber = scanStart; scanNumber <= scanEnd; scanNumber++)
             {
-                if (scanEnd > scanStart && (scanNumber - scanStart) / (double)(scanEnd - scanStart) > sr)
+                if (scanEnd > scanStart && (scanNumber - scanStart) / (double)(scanEnd - scanStart) > progressThreshold)
                 {
-                    if (sr > 0 && ShowProgressAtConsole)
-                        Console.WriteLine("  " + sr * 100 + "% completed");
+                    if (progressThreshold > 0 && ShowProgressAtConsole)
+                        Console.WriteLine("  " + progressThreshold * 100 + "% completed");
 
-                    var percentCompleteCurrentFile = (float)sr * 100;
-                    var percentCompleteOverall = ((fileCountCurrent - 1) / (float)fileCountTotal + (float)sr / fileCountTotal) * 100;
+                    var percentCompleteCurrentFile = (float)progressThreshold * 100;
+                    var percentCompleteOverall = ((fileCountCurrent - 1) / (float)fileCountTotal + (float)progressThreshold / fileCountTotal) * 100;
 
                     OnProgressChanged(percentCompleteOverall, percentCompleteCurrentFile);
 
-                    sr += .05;
+                    progressThreshold += .05;
                 }
 
                 var msorder = 2;

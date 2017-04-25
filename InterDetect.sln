@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.26403.7
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InterDetect", "InterDetect\InterDetect.csproj", "{7CBE9A82-3CF0-42DC-B5E8-52E8C3388BE8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IDM_Console", "IDM_Console\IDM_Console.csproj", "{4DC7197F-2459-4983-A76C-33DAB4A44BFC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InterDetectTests", "InterDetectTests\InterDetectTests.csproj", "{B5A8827A-0DA2-4A13-979F-07345463E9A3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{4DC7197F-2459-4983-A76C-33DAB4A44BFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4DC7197F-2459-4983-A76C-33DAB4A44BFC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4DC7197F-2459-4983-A76C-33DAB4A44BFC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B5A8827A-0DA2-4A13-979F-07345463E9A3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B5A8827A-0DA2-4A13-979F-07345463E9A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B5A8827A-0DA2-4A13-979F-07345463E9A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B5A8827A-0DA2-4A13-979F-07345463E9A3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

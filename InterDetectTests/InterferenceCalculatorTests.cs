@@ -1,15 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.IO;
+using InterDetect;
 using NUnit.Framework;
 
-namespace InterDetect
+namespace InterDetectTests
 {
     [TestFixture]
     public class InterferenceCalculatorTests
     {
+        private int mFileCountCurrent;
+
+        [OneTimeSetUp]
+        public void Setup()
+        {
+            mFileCountCurrent = 0;
+        }
+
         [Test]
         public void ChargeStateGuesstimatorTests()
         {
@@ -123,5 +130,115 @@ namespace InterDetect
                 }
             }
         }
+
+        [Test]
+        [TestCase(@"\\Proto-5\VOrbiETD02\2012_2", "Sample_4065_iTRAQ", "DLS201204031741_Auto822622", 20007, 21000,
+            "20100=0.4913|20125=0.9613|20150=0.3088|20175=0.8689|20200=0.5874|20275=0.4388|20300=0.8917|20325=1|20350=0.959|20375=0.915|20400=0.5616|20425=0.9258|20450=0.9929|20500=0.4717|20550=0.9512|20575=0.8419|20675=1|20725=1|20750=1|20775=0.8774|20800=0.8458|20825=1|20850=0.5537|20900=0.947|20950=1|20975=0.8914|21000=1|")]
+        [TestCase(@"\\Proto-5\VOrbiETD02\2012_2", "Sample_5065_iTRAQ", "DLS201204031733_Auto822617", 39006, 40000,
+            "39025=0.8276|39050=0.96|39125=0.7461|39175=0.9026|39200=0.8072|39225=0.8402|39250=0.8496|39275=1|39300=0.7802|39325=0.812|39350=0.824|39400=0.8676|39425=0.978|39475=0.9172|39500=0.9794|39525=0.777|39575=0.9728|39625=1|39675=0.9776|39700=0.5995|39725=0.894|39775=0.6856|39850=0.8273|39875=0.8846|39900=1|39925=0.9748|39950=0.6835|39975=0.6819|40000=0.8458|")]
+        [Category("PNL_Domain")]
+        public void TestVOrbiData(
+            string storageFolderPath, string datasetName,
+            string deconToolsResultsFolderName,
+            int scanStart, int scanEnd,
+            string expectedResultsByScan)
+        {
+            var datasetFolder = new DirectoryInfo(Path.Combine(storageFolderPath, datasetName));
+
+            var datasetFile = new FileInfo(Path.Combine(datasetFolder.FullName, datasetName + ".raw"));
+
+            var isosFile = new FileInfo(Path.Combine(datasetFolder.FullName, deconToolsResultsFolderName, datasetName + "_isos.csv"));
+
+            if (!datasetFolder.Exists)
+                Assert.Fail("Dataset folder not found: " + datasetFolder.FullName);
+
+            if (!datasetFile.Exists)
+                Assert.Fail(".Raw file not found: " + datasetFile.FullName);
+
+            if (!isosFile.Exists)
+                Assert.Fail(".Raw file not found: " + datasetFile.FullName);
+
+            mFileCountCurrent++;
+
+            var idm = new InterferenceDetector { ShowProgressAtConsole = false };
+
+            var lstPrecursorInfo = idm.ParentInfoPass(mFileCountCurrent, 2, datasetFile.FullName, isosFile.FullName, scanStart, scanEnd);
+
+            if (lstPrecursorInfo == null)
+            {
+                Assert.Fail(datasetFile.FullName + " failed to load");
+            }
+
+            var resultsFile = new FileInfo("IDMResults_" + datasetName + ".txt");
+            if (resultsFile.Exists)
+                try
+                {
+                    resultsFile.Delete();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Warning, could not delete results file before writing new results: " + ex.Message);
+                }
+
+            idm.ExportInterferenceScores(lstPrecursorInfo, "Dataset" + mFileCountCurrent, resultsFile.FullName);
+
+            Console.WriteLine("Results written to " + resultsFile.FullName);
+
+
+            // Extract the data from expectedResultsByScan
+            var expectedResultsToParse = expectedResultsByScan.Split('|');
+            var expectedResults = new Dictionary<int, double>();
+
+            foreach (var expectedResult in expectedResultsToParse)
+            {
+                var charIndex = expectedResult.IndexOf('=');
+                if (charIndex <= 0)
+                    continue;
+
+                var scanNumberText = expectedResult.Substring(0, charIndex);
+                var scoreText = expectedResult.Substring(charIndex+1);
+
+                if (!int.TryParse(scanNumberText, out var scanNumber))
+                    continue;
+
+                if (double.TryParse(scoreText, out var score))
+                {
+                    expectedResults.Add(scanNumber, score);
+                }
+            }
+
+            var matchCount = 0;
+            var comparisonCount = 0;
+
+            foreach (var result in lstPrecursorInfo)
+            {
+                if (!expectedResults.TryGetValue(result.ScanNumber, out var expectedScore))
+                {
+                    continue;
+                }
+
+                comparisonCount += 1;
+
+                if (Math.Abs(expectedScore - result.Interference) > 0.01)
+                {
+                    Console.WriteLine("Score mismatch for scan {0}: {1:F2} vs. {2:F2}", result.ScanNumber, expectedScore, result.Interference);
+                }
+                else
+                {
+                    matchCount += 1;
+                }
+            }
+
+            if (matchCount == comparisonCount)
+            {
+                Console.WriteLine("Validated interference scores for {0} precursors", matchCount);
+            }
+            else
+            {
+                Assert.Fail("{0} / {1} precursors had unexpected interference scores", comparisonCount - matchCount, comparisonCount);
+            }
+
+        }
+
     }
 }

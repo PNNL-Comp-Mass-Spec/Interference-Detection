@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using PRISM;
 
 namespace InterDetect
 {
-    public class IsosHandler
+    public class IsosHandler : clsEventNotifier
     {
         Dictionary<int, List<IsosData>> mParentScans;
 
@@ -229,13 +230,23 @@ namespace InterDetect
                     else
                     {
                         // it's empty, that's an error
-                        throw new ApplicationException("The data provided is not in a valid format.");
+                        var message = "Data file is empty: " + fileName;
+                        OnErrorEvent(message);
+                        throw new Exception(message);
                     }
 
-                    if (abundanceColIndex < 0) throw new ApplicationException("Isos files does not have column: abundance");
-                    if (mzColIndex < 0) throw new ApplicationException("Isos files does not have column: mz");
-                    if (scanColIndex < 0) throw new ApplicationException("Isos files does not have column: scan_num");
-                    if (chargeColndex < 0) throw new ApplicationException("Isos files does not have column: charge");
+                    var columnError = "";
+
+                    if (abundanceColIndex < 0) columnError = "Isos files does not have column: abundance";
+                    else if (mzColIndex < 0) columnError = "Isos files does not have column: mz";
+                    else if (scanColIndex < 0) columnError = "Isos files does not have column: scan_num";
+                    else if (chargeColndex < 0) columnError = "Isos files does not have column: charge";
+
+                    if (!string.IsNullOrEmpty(columnError))
+                    {
+                        OnErrorEvent(columnError);
+                        throw new Exception(columnError);
+                    }
 
                     // fill the rest of the table
                     while ((line = sr.ReadLine()) != null)
@@ -257,7 +268,7 @@ namespace InterDetect
             }
             catch (Exception ex)
             {
-                Console.WriteLine("The file failed to load" + ex.Message);
+                OnErrorEvent("The file failed to load: " + ex.Message, ex);
                 return null;
             }
         }

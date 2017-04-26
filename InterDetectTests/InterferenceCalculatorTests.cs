@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using InterDetect;
 using NUnit.Framework;
+using PRISM;
 
 namespace InterDetectTests
 {
@@ -219,6 +220,7 @@ namespace InterDetectTests
             mFileCountCurrent++;
 
             var idm = new InterferenceDetector { ShowProgressAtConsole = false };
+            RegisterEvents(idm);
 
             var lstPrecursorInfo = idm.ParentInfoPass(mFileCountCurrent, 2, datasetFile.FullName, isosFilePath, scanStart, scanEnd);
 
@@ -298,5 +300,27 @@ namespace InterDetectTests
 
         }
 
+        protected void RegisterEvents(clsEventNotifier oProcessingClass)
+        {
+            oProcessingClass.StatusEvent += new clsEventNotifier.StatusEventEventHandler(this.OnStatusEvent);
+            oProcessingClass.ErrorEvent += new clsEventNotifier.ErrorEventEventHandler(this.OnErrorEvent);
+            oProcessingClass.WarningEvent += new clsEventNotifier.WarningEventEventHandler(this.OnWarningEvent);
+        }
+
+        private void OnWarningEvent(string message)
+        {
+            Console.WriteLine("Warning: " + message);
+        }
+
+        private void OnErrorEvent(string message, Exception ex)
+        {
+            Console.WriteLine("Error: " + message);
+            Console.WriteLine(PRISM.clsStackTraceFormatter.GetExceptionStackTraceMultiLine(ex));
+        }
+
+        private void OnStatusEvent(string message)
+        {
+            Console.WriteLine(message);
+        }
     }
 }

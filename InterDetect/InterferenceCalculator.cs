@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using PRISM;
 
 namespace InterDetect
 {
     /// <summary>
     /// Algorithm for calculating precursor interference
     /// </summary>
-    public class InterferenceCalculator
+    public class InterferenceCalculator : clsEventNotifier
     {
         private const double C12_C13_MASS_DIFFERENCE = 1.0033548378;
         private const int NumIsotopesToCheckChargeGuess = 2;
@@ -75,8 +76,8 @@ namespace InterDetect
                 {
                     if (UnknownChargeCount <= 15)
                     {
-                        Console.WriteLine("Warning, charge state for {0:F2} in scan {1} not supplied, and could not guesstimate it. " +
-                                          "Giving bad score.", precursorInfo.IsolationMass, precursorInfo.ScanNumber);
+                        OnWarningEvent(string.Format("Charge state for {0:F2} in scan {1} not supplied, and could not guesstimate it. " +
+                                          "Giving bad score.", precursorInfo.IsolationMass, precursorInfo.ScanNumber));
                     }
 
                     UnknownChargeCount++;
@@ -274,7 +275,7 @@ namespace InterDetect
             }
             else
             {
-                Console.WriteLine("Did not find the precursor for {0:F2} in scan {1}", precursorInfo.IsolationMass, precursorInfo.ScanNumber);
+                OnWarningEvent(string.Format("Did not find the precursor for {0:F2} in scan {1}", precursorInfo.IsolationMass, precursorInfo.ScanNumber));
             }
 
             precursorInfo.Interference = overallInterference;

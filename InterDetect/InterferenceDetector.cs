@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using Mage;
+using PRISM;
 using ThermoRawFileReader;
 
 namespace InterDetect
@@ -36,7 +37,7 @@ namespace InterDetect
         /// <summary>
         /// Overall percent complete (value between 0 and 100)
         /// </summary>
-        public float Value { get; set;}
+        public float Value { get; set; }
 
         /// <summary>
         /// Percent complete for the current file
@@ -47,7 +48,7 @@ namespace InterDetect
     /// <summary>
     /// Interference detection algorithm - uses sqlite, .raw, and _isos.csv as input
     /// </summary>
-    public class InterferenceDetector
+    public class InterferenceDetector : clsEventNotifier
     {
         public const string DEFAULT_RESULT_DATABASE_NAME = "Results.db3";
 
@@ -116,11 +117,18 @@ namespace InterDetect
 
             var diDataFolder = new DirectoryInfo(databaseFolderPath);
             if (!diDataFolder.Exists)
-                throw new DirectoryNotFoundException("Database folder not found: " + databaseFolderPath);
-
+            {
+                var message = "Database folder not found: " + databaseFolderPath;
+                OnErrorEvent(message);
+                throw new DirectoryNotFoundException(message);
+            }
             var fiDatabaseFile = new FileInfo(Path.Combine(diDataFolder.FullName, databaseFileName));
             if (!fiDatabaseFile.Exists)
-                throw new FileNotFoundException("Database not found: " + fiDatabaseFile.FullName);
+            {
+                var message = "Database not found: " + fiDatabaseFile.FullName;
+                OnErrorEvent(message);
+                throw new FileNotFoundException(message);
+            }
 
             // build Mage pipeline to read contents of
             // a table in a SQLite database into a data buffer
@@ -140,7 +148,9 @@ namespace InterDetect
             }
             catch (Exception ex)
             {
-                throw new Exception("Error calling LookupMSMSFiles: " + ex.Message, ex);
+                var message = "Error calling LookupMSMSFiles: " + ex.Message;
+                OnErrorEvent(message, ex);
+                throw new Exception(message, ex);
             }
 
             try
@@ -153,7 +163,9 @@ namespace InterDetect
             }
             catch (Exception ex)
             {
-                throw new Exception("Error calling LookupDeconToolsInfo: " + ex.Message, ex);
+                var message = "Error calling LookupDeconToolsInfo: " + ex.Message;
+                OnErrorEvent(message, ex);
+                throw new Exception(message, ex);
             }
 
             try
@@ -162,7 +174,9 @@ namespace InterDetect
             }
             catch (Exception ex)
             {
-                throw new Exception("Error calling PerformWork: " + ex.Message, ex);
+                var message = "Error calling PerformWork: " + ex.Message;
+                OnErrorEvent(message, ex);
+                throw new Exception(message, ex);
             }
 
             return true;
@@ -173,28 +187,27 @@ namespace InterDetect
             //Calculate the needed info and generate a temporary file, keep adding each dataset to this file
             var tempPrecFilePath = outpath;
 
-            Console.WriteLine();
-            Console.WriteLine("Processing file: " + Path.GetFileName(rawFilePath));
+            OnStatusEvent("Processing file: " + Path.GetFileName(rawFilePath));
             List<PrecursorIntense> lstPrecursorInfo = null;
             try
             {
                 lstPrecursorInfo = ParentInfoPass(1, 1, rawFilePath, isosFilePath);
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Console.WriteLine(e.Message);
+                OnErrorEvent("Error in GUI_PerformWork: " + ex.Message, ex);
             }
 
             if (lstPrecursorInfo == null)
             {
                 DeleteFile(tempPrecFilePath);
-                Console.WriteLine("Error in PerformWork: ParentInfoPass returned null loading " + rawFilePath);
+                OnErrorEvent("Error in PerformWork: ParentInfoPass returned null loading " + rawFilePath);
                 return false;
             }
 
             ExportInterferenceScores(lstPrecursorInfo, "000000", tempPrecFilePath);
 
-            Console.WriteLine("Process Complete");
+            OnStatusEvent("Process Complete");
             return true;
         }
 
@@ -229,18 +242,20 @@ namespace InterDetect
                 fileCountCurrent++;
 
                 Console.WriteLine();
-                Console.WriteLine("Processing file " + fileCountCurrent + " / " + dctRawFiles.Count + ": " + Path.GetFileName(dctRawFiles[datasetID]));
+                OnStatusEvent("Processing file " + fileCountCurrent + " / " + dctRawFiles.Count + ": " + Path.GetFileName(dctRawFiles[datasetID]));
 
                 var lstPrecursorInfo = ParentInfoPass(fileCountCurrent, dctRawFiles.Count, dctRawFiles[datasetID], isosFilePath);
                 if (lstPrecursorInfo == null)
                 {
-                    throw new Exception("Error in PerformWork: ParentInfoPass returned null loading " + dctRawFiles[datasetID]);
+                    var message = "Error in PerformWork: ParentInfoPass returned null loading " + dctRawFiles[datasetID];
+                    OnErrorEvent(message);
+                    throw new Exception(message);
                 }
 
                 ExportInterferenceScores(lstPrecursorInfo, datasetID, tempPrecFilePath);
 
                 if (ShowProgressAtConsole)
-                    Console.WriteLine("Iteration Complete");
+                    OnStatusEvent("Iteration Complete");
             }
 
             try
@@ -260,9 +275,12 @@ namespace InterDetect
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error adding table t_precursor_interference to the SqLite database: " + ex.Message);
-                Console.WriteLine("Results are in file " + tempPrecFilePath);
-                throw new Exception("Error adding table t_precursor_interference to the SqLite database: " + ex.Message, ex);
+                var message = "Error adding table t_precursor_interference to the SqLite database: " + ex.Message;
+
+                OnErrorEvent(message, ex);
+                OnStatusEvent("Results are in file " + tempPrecFilePath);
+
+                throw new Exception(message, ex);
             }
 
             if (System.Net.Dns.GetHostName().ToLower().Contains("monroe"))
@@ -285,7 +303,7 @@ namespace InterDetect
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error deleting locally cached file " + filePath + ": " + ex.Message);
+                OnErrorEvent("Error deleting locally cached file " + filePath + ": " + ex.Message, ex);
             }
         }
 
@@ -312,9 +330,12 @@ namespace InterDetect
                 if (!filepaths.ContainsKey(row[datasetIDIdx]))
                     filepaths.Add(row[datasetIDIdx], Path.Combine(row[folderPathIdx], row[datasetIdx] + raw_ext));
             }
+
             if (filepaths.Count == 0)
             {
-                throw new Exception("Error in LookupMSMSFiles; no results found using " + reader.SQLText);
+                var message = "Error in LookupMSMSFiles; no results found using " + reader.SQLText;
+                OnErrorEvent(message);
+                throw new Exception(message);
             }
 
             return true;
@@ -328,9 +349,9 @@ namespace InterDetect
                 if (success)
                     return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                Console.WriteLine("Table T_Results_Metadata_Typed not found; will look for t_results_metadata");
+                OnErrorEvent("Table T_Results_Metadata_Typed not found; will look for t_results_metadata", ex);
             }
 
             try
@@ -341,7 +362,7 @@ namespace InterDetect
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                OnErrorEvent("Error in LookupDeconToolsInfo: " + ex.Message, ex);
                 throw;
             }
 
@@ -389,17 +410,17 @@ namespace InterDetect
         /// <param name="progressCurrentFile">Progress for the current file (value between 0 and 100)</param>
         protected void OnProgressChanged(float progressOverall, float progressCurrentFile)
         {
+            OnProgressUpdate("Processing", progressOverall);
 
-            if (ProgressChanged != null)
+            if (ProgressChanged == null) return;
+
+            var e = new ProgressInfo
             {
-                var e = new ProgressInfo
-                {
-                    Value = progressOverall,
-                    ProgressCurrentFile = progressCurrentFile
-                };
+                Value = progressOverall,
+                ProgressCurrentFile = progressCurrentFile
+            };
 
-                ProgressChanged(this, e);
-            }
+            ProgressChanged(this, e);
         }
 
         /// <summary>
@@ -426,6 +447,7 @@ namespace InterDetect
 
             if (!remoteRawFile.Exists)
             {
+                OnErrorEvent("File not found: " + remoteRawFile.FullName);
                 throw new FileNotFoundException(remoteRawFile.FullName);
             }
 
@@ -433,14 +455,16 @@ namespace InterDetect
 
             if (!string.Equals(rawFilePath, rawFilePathLocal))
             {
-                Console.WriteLine("Copying {0} to the local computer", remoteRawFile.FullName);
+                OnStatusEvent(string.Format("Copying {0} to the local computer", remoteRawFile.FullName));
                 fileTools.CopyFileUsingLocks(remoteRawFile.FullName, rawFilePathLocal, "IDM");
             }
 
-            var worked = rawFileReader.OpenRawFile(rawFilePathLocal);
-            if (!worked)
+            var success = rawFileReader.OpenRawFile(rawFilePathLocal);
+            if (!success)
             {
-                throw new Exception("File failed to open .Raw file in ParentInfoPass: " + rawFilePathLocal);
+                var message = "File failed to open .Raw file in ParentInfoPass: " + rawFilePathLocal;
+                OnErrorEvent(message);
+                throw new Exception(message);
             }
 
             string isosFilePathLocal;
@@ -456,8 +480,8 @@ namespace InterDetect
                 var remoteIsosFile = new FileInfo(isosFilePath);
                 if (!remoteIsosFile.Exists)
                 {
-                    Console.WriteLine("Warning, remote isos file not found: " + remoteIsosFile.FullName);
-                    Console.WriteLine("If a precursor ion's charge is reported as 0 by the Thermo reader, we will try to determine it empirically");
+                    OnStatusEvent("Warning, remote isos file not found: " + remoteIsosFile.FullName);
+                    OnStatusEvent("If a precursor ion's charge is reported as 0 by the Thermo reader, we will try to determine it empirically");
                     isosFilePathLocal = "";
                     isosReader = null;
                 }
@@ -468,11 +492,12 @@ namespace InterDetect
 
                     if (!string.Equals(isosFilePath, isosFilePathLocal))
                     {
-                        Console.WriteLine("Copying {0} to the local computer", remoteIsosFile.FullName);
+                        OnStatusEvent(string.Format("Copying {0} to the local computer", remoteIsosFile.FullName));
                         fileTools.CopyFileUsingLocks(remoteIsosFile.FullName, isosFilePathLocal, "IDM");
                     }
 
                     isosReader = new IsosHandler(isosFilePathLocal);
+                    RegisterEvents(isosReader);
                 }
 
             }
@@ -498,7 +523,7 @@ namespace InterDetect
                 if (scanEnd > scanStart && (scanNumber - scanStart) / (double)(scanEnd - scanStart) > progressThreshold)
                 {
                     if (progressThreshold > 0 && ShowProgressAtConsole)
-                        Console.WriteLine("  " + progressThreshold * 100 + "% completed");
+                        OnDebugEvent("  " + progressThreshold * 100 + "% completed");
 
                     var percentCompleteCurrentFile = (float)progressThreshold * 100;
                     var percentCompleteOverall = ((fileCountCurrent - 1) / (float)fileCountTotal + (float)progressThreshold / fileCountTotal) * 100;
@@ -522,8 +547,10 @@ namespace InterDetect
                 int chargeState;
                 if (!scanInfo.TryGetScanEvent(SCAN_EVENT_CHARGE_STATE, out var chargeStateText, true))
                 {
-                    Console.WriteLine("Warning, scan {0} does not have scan event '{1}'; will try to determine the charge empirically", scanNumber,
-                                      SCAN_EVENT_CHARGE_STATE);
+                    OnWarningEvent(string.Format(
+                        "Warning, scan {0} does not have scan event '{1}'; will try to determine the charge empirically",
+                        scanNumber, SCAN_EVENT_CHARGE_STATE));
+
                     chargeState = 0;
                 }
                 else
@@ -534,7 +561,9 @@ namespace InterDetect
 
                 if (!scanInfo.TryGetScanEvent(SCAN_EVENT_MS2_ISOLATION_WIDTH, out var isolationWidthText, true))
                 {
-                    Console.WriteLine("Skipping scan {0} since scan event '{1}' not found", scanNumber, SCAN_EVENT_MS2_ISOLATION_WIDTH);
+                    OnWarningEvent(
+                        string.Format("Skipping scan {0} since scan event '{1}' not found",
+                                      scanNumber, SCAN_EVENT_MS2_ISOLATION_WIDTH));
                     continue;
                 }
 
@@ -545,13 +574,17 @@ namespace InterDetect
                 {
                     if (!scanInfo.TryGetScanEvent(SCAN_EVENT_MONOISOTOPIC_MZ, out var monoMzText, true))
                     {
-                        Console.WriteLine("Skipping scan {0} since scan event '{1}' not found", scanNumber, SCAN_EVENT_MONOISOTOPIC_MZ);
+                        OnWarningEvent(
+                            string.Format("Skipping scan {0} since scan event '{1}' not found",
+                                          scanNumber, SCAN_EVENT_MONOISOTOPIC_MZ));
                         continue;
                     }
 
                     if (!double.TryParse(monoMzText, out mz))
                     {
-                        Console.WriteLine("Skipping scan {0} since scan event '{1}' was not a number: {2}", scanNumber, SCAN_EVENT_MONOISOTOPIC_MZ, monoMzText);
+                        OnWarningEvent(
+                            string.Format("Skipping scan {0} since scan event '{1}' was not a number: {2}",
+                                          scanNumber, SCAN_EVENT_MONOISOTOPIC_MZ, monoMzText));
                         continue;
                     }
                 }
@@ -590,9 +623,10 @@ namespace InterDetect
 
             if (interferenceCalc.UnknownChargeCount > 0)
             {
-                Console.WriteLine("Warning, charge could not be determined for {0:F1}% of the precursors ({1} / {2})",
+                OnWarningEvent(string.Format(
+                    "Charge could not be determined for {0:F1}% of the precursors ({1} / {2})",
                     interferenceCalc.UnknownChargeCount / (double)lstPrecursorInfo.Count * 100,
-                    interferenceCalc.UnknownChargeCount, lstPrecursorInfo.Count);
+                    interferenceCalc.UnknownChargeCount, lstPrecursorInfo.Count));
             }
 
             // Delete the locally cached raw file

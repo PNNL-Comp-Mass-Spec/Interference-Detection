@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using Mage;
 using PRISM;
@@ -572,6 +571,8 @@ namespace InterDetect
                 double mz;
                 if (Math.Abs(scanInfo.ParentIonMZ) < 1e-6)
                 {
+                    // ThermoRawFileReader could not determine the parent ion m/z value
+                    // Use scan event "Monoisotopic M/Z" instead
                     if (!scanInfo.TryGetScanEvent(SCAN_EVENT_MONOISOTOPIC_MZ, out var monoMzText, true))
                     {
                         OnWarningEvent(

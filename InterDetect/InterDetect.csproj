@@ -40,16 +40,15 @@
     <NoWarn>1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="log4net, Version=1.2.13.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>DLLLibrary\log4net.dll</HintPath>
-    </Reference>
     <Reference Include="Mage, Version=1.3.4304.23858, Culture=neutral, processorArchitecture=x86">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>DLLLibrary\Mage.dll</HintPath>
     </Reference>
     <Reference Include="MyEMSLReader">
       <HintPath>DLLLibrary\MyEMSLReader.dll</HintPath>
+    </Reference>
+    <Reference Include="Pacifica.Core">
+      <HintPath>DLLLibrary\Pacifica.Core.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -78,8 +77,11 @@
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="log4net">
+      <Version>2.0.8</Version>
+    </PackageReference>
     <PackageReference Include="PRISM-Library">
-      <Version>1.0.2</Version>
+      <Version>2.4.39</Version>
     </PackageReference>
     <PackageReference Include="System.Data.SQLite.Core" Version="1.0.97" />
   </ItemGroup>

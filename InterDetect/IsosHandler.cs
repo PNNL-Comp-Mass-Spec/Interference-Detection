@@ -10,8 +10,20 @@ namespace InterDetect
     {
         Dictionary<int, List<IsosData>> mParentScans;
 
-        public IsosHandler(string filepath)
+        /// <summary>
+        /// When true, events are thrown up the calling tree for the parent class to handle them
+        /// </summary>
+        /// <remarks>Defaults to true</remarks>
+        public bool ThrowEvents { get; set; }
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="filepath"></param>
+        /// <param name="throwEvents"></param>
+        public IsosHandler(string filepath, bool throwEvents = true)
         {
+            ThrowEvents = throwEvents;
             var lstIsosData = TextFileToData(filepath);
 
             GetParentScanNumbers(lstIsosData);
@@ -245,7 +257,9 @@ namespace InterDetect
                     if (!string.IsNullOrEmpty(columnError))
                     {
                         OnErrorEvent(columnError);
-                        throw new Exception(columnError);
+                        if (ThrowEvents)
+                            throw new Exception(columnError);
+                        return lstIsosData;
                     }
 
                     // fill the rest of the table

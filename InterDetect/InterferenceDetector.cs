@@ -80,6 +80,12 @@ namespace InterDetect
         private int mCachedPrecursorScan;
 
         /// <summary>
+        /// When true, events are thrown up the calling tree for the parent class to handle them
+        /// </summary>
+        /// <remarks>Defaults to true</remarks>
+        public bool ThrowEvents { get; set; } = true;
+
+        /// <summary>
         /// Constructor
         /// </summary>
         public InterferenceDetector()
@@ -119,14 +125,18 @@ namespace InterDetect
             {
                 var message = "Database folder not found: " + databaseFolderPath;
                 OnErrorEvent(message);
-                throw new DirectoryNotFoundException(message);
+                if (ThrowEvents)
+                    throw new DirectoryNotFoundException(message);
+                return false;
             }
             var fiDatabaseFile = new FileInfo(Path.Combine(diDataFolder.FullName, databaseFileName));
             if (!fiDatabaseFile.Exists)
             {
                 var message = "Database not found: " + fiDatabaseFile.FullName;
                 OnErrorEvent(message);
-                throw new FileNotFoundException(message);
+                if (ThrowEvents)
+                    throw new FileNotFoundException(message);
+                return false;
             }
 
             // build Mage pipeline to read contents of
@@ -149,7 +159,9 @@ namespace InterDetect
             {
                 var message = "Error calling LookupMSMSFiles: " + ex.Message;
                 OnErrorEvent(message, ex);
-                throw new Exception(message, ex);
+                if (ThrowEvents)
+                    throw new Exception(message, ex);
+                return false;
             }
 
             try
@@ -164,7 +176,9 @@ namespace InterDetect
             {
                 var message = "Error calling LookupDeconToolsInfo: " + ex.Message;
                 OnErrorEvent(message, ex);
-                throw new Exception(message, ex);
+                if (ThrowEvents)
+                    throw new Exception(message, ex);
+                return false;
             }
 
             try
@@ -175,7 +189,9 @@ namespace InterDetect
             {
                 var message = "Error calling PerformWork: " + ex.Message;
                 OnErrorEvent(message, ex);
-                throw new Exception(message, ex);
+                if (ThrowEvents)
+                    throw new Exception(message, ex);
+                return false;
             }
 
             return true;
@@ -248,7 +264,9 @@ namespace InterDetect
                 {
                     var message = "Error in PerformWork: ParentInfoPass returned null loading " + dctRawFiles[datasetID];
                     OnErrorEvent(message);
-                    throw new Exception(message);
+                    if (ThrowEvents)
+                        throw new Exception(message);
+                    return;
                 }
 
                 ExportInterferenceScores(lstPrecursorInfo, datasetID, tempPrecFilePath);
@@ -279,7 +297,8 @@ namespace InterDetect
                 OnErrorEvent(message, ex);
                 OnStatusEvent("Results are in file " + tempPrecFilePath);
 
-                throw new Exception(message, ex);
+                if (ThrowEvents)
+                    throw new Exception(message, ex);
             }
 
             if (System.Net.Dns.GetHostName().ToLower().Contains("monroe"))
@@ -334,7 +353,9 @@ namespace InterDetect
             {
                 var message = "Error in LookupMSMSFiles; no results found using " + reader.SQLText;
                 OnErrorEvent(message);
-                throw new Exception(message);
+                if (ThrowEvents)
+                    throw new Exception(message);
+                return false;
             }
 
             return true;
@@ -447,7 +468,9 @@ namespace InterDetect
             if (!remoteRawFile.Exists)
             {
                 OnErrorEvent("File not found: " + remoteRawFile.FullName);
-                throw new FileNotFoundException(remoteRawFile.FullName);
+                if (ThrowEvents)
+                    throw new FileNotFoundException(remoteRawFile.FullName);
+                return new List<PrecursorIntense>();
             }
 
             var rawFilePathLocal = Path.Combine(WorkDir, remoteRawFile.Name);
@@ -463,7 +486,9 @@ namespace InterDetect
             {
                 var message = "File failed to open .Raw file in ParentInfoPass: " + rawFilePathLocal;
                 OnErrorEvent(message);
-                throw new Exception(message);
+                if (ThrowEvents)
+                    throw new Exception(message);
+                return new List<PrecursorIntense>();
             }
 
             string isosFilePathLocal;
@@ -495,7 +520,7 @@ namespace InterDetect
                         fileTools.CopyFileUsingLocks(remoteIsosFile.FullName, isosFilePathLocal, "IDM");
                     }
 
-                    isosReader = new IsosHandler(isosFilePathLocal);
+                    isosReader = new IsosHandler(isosFilePathLocal, ThrowEvents);
                     RegisterEvents(isosReader);
                 }
 

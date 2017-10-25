@@ -38,6 +38,7 @@ namespace IDM_Console
 
                 var idm = new InterferenceDetector { ShowProgressAtConsole = false };
                 RegisterEvents(idm);
+                idm.ThrowEvents = false;
 
                 var success = idm.Run(sourceFile.DirectoryName, sourceFile.Name);
 

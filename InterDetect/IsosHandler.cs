@@ -39,8 +39,6 @@ namespace InterDetect
             return mParentScans.ContainsKey(i);
         }
 
-
-
         /// <summary>
         /// In some cases the raw file fails to provide a charge state, if that is the case
         /// we check the isos file to see if decon2ls could figure it out.
@@ -204,47 +202,53 @@ namespace InterDetect
 
                 var lstIsosData = new List<IsosData>();
 
-                using (var sr = new StreamReader(new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read)))
+                using (var sr = new StreamReader(new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)))
                 {
-                    // first line has headers
-                    var myFields = new List<int>();
-                    string line;
-                    int abundanceColIndex = -1;
-                    int mzColIndex = -1;
-                    int scanColIndex = -1;
-                    int chargeColndex = -1;
-
-                    if ((line = sr.ReadLine()) != null)
+                    if (sr.EndOfStream)
                     {
-                        var headerCols = line.Split(splitChars);
-
-                        for (int i = 0; i < headerCols.Length; i++)
-                        {
-                            switch (headerCols[i].ToLower())
-                            {
-                                case "abundance":
-                                    abundanceColIndex=i;
-                                    break;
-                                case "mz":
-                                    mzColIndex = i;
-                                    break;
-                                case "scan_num":
-                                    scanColIndex = i;
-                                    break;
-                                case "charge":
-                                    chargeColndex = i;
-                                    break;
-                            }
-
-                        }
-
+                        var message = "Data file is empty: " + fileName;
+                        OnErrorEvent(message);
+                        if (ThrowEvents)
+                            throw new Exception(message);
+                        return lstIsosData;
                     }
-                    else
+
+                    var abundanceColIndex = -1;
+                    var mzColIndex = -1;
+                    var scanColIndex = -1;
+                    var chargeColndex = -1;
+
+                    var headerLine = sr.ReadLine();
+
+                    if (string.IsNullOrWhiteSpace(headerLine))
                     {
                         // it's empty, that's an error
                         var message = "Data file is empty: " + fileName;
                         OnErrorEvent(message);
-                        throw new Exception(message);
+                        if (ThrowEvents)
+                            throw new Exception(message);
+                        return lstIsosData;
+                    }
+
+                    var headerCols = headerLine.Split(splitChars);
+
+                    for (var i = 0; i < headerCols.Length; i++)
+                    {
+                        switch (headerCols[i].ToLower())
+                        {
+                            case "abundance":
+                                abundanceColIndex = i;
+                                break;
+                            case "mz":
+                                mzColIndex = i;
+                                break;
+                            case "scan_num":
+                                scanColIndex = i;
+                                break;
+                            case "charge":
+                                chargeColndex = i;
+                                break;
+                        }
                     }
 
                     var columnError = "";
@@ -263,8 +267,11 @@ namespace InterDetect
                     }
 
                     // fill the rest of the table
-                    while ((line = sr.ReadLine()) != null)
+                    while (!sr.EndOfStream)
                     {
+                        var line = sr.ReadLine();
+                        if (string.IsNullOrEmpty(line))
+                            continue;
 
                         var dataValues = line.Split(splitChars);
 
@@ -289,8 +296,7 @@ namespace InterDetect
 
         protected double GetValueDbl(string[] dataValues, int colIndex, double valueIfMissing)
         {
-            double value;
-            if (double.TryParse(dataValues[colIndex], out value))
+            if (double.TryParse(dataValues[colIndex], out var value))
                 return value;
 
             return valueIfMissing;
@@ -298,8 +304,7 @@ namespace InterDetect
 
         protected int GetValueInt(string[] dataValues, int colIndex, int valueIfMissing)
         {
-            int value;
-            if (int.TryParse(dataValues[colIndex], out value))
+            if (int.TryParse(dataValues[colIndex], out var value))
                 return value;
 
             return valueIfMissing;

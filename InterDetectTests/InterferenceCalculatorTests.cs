@@ -23,7 +23,7 @@ namespace InterDetectTests
         {
             // QC_Shew_13_04_A_17Feb14_Samwise_13-07-28.raw
             // Scan 10444
-            var peakData = new double[,]
+            var peakData = new[,]
             {
                 {
                     425.1318, 425.2246, 425.3246, 425.7262, 425.8277, 426.2270, 426.2576, 426.5674, 426.7279, 427.1373, 427.2435, 427.7440, 427.7566,
@@ -124,7 +124,7 @@ namespace InterDetectTests
             foreach (var pre in data)
             {
                 var guessCharge = InterferenceCalculator.ChargeStateGuesstimator(pre.IsolationMass, peakList);
-                System.Console.WriteLine("Peak mass {0:F4} Charge: Thermo: {1} Guess: {2}", pre.IsolationMass, pre.ChargeState, guessCharge);
+                Console.WriteLine("Peak mass {0:F4} Charge: Thermo: {1} Guess: {2}", pre.IsolationMass, pre.ChargeState, guessCharge);
                 if (pre.ChargeState > 0)
                 {
                     Assert.AreEqual(pre.ChargeState, guessCharge, "Peak mass {0:F4} Charge: Thermo: {1} Guess: {2}", pre.IsolationMass, pre.ChargeState, guessCharge);
@@ -302,9 +302,9 @@ namespace InterDetectTests
 
         protected void RegisterEvents(clsEventNotifier oProcessingClass)
         {
-            oProcessingClass.StatusEvent += new clsEventNotifier.StatusEventEventHandler(this.OnStatusEvent);
-            oProcessingClass.ErrorEvent += new clsEventNotifier.ErrorEventEventHandler(this.OnErrorEvent);
-            oProcessingClass.WarningEvent += new clsEventNotifier.WarningEventEventHandler(this.OnWarningEvent);
+            oProcessingClass.StatusEvent += OnStatusEvent;
+            oProcessingClass.ErrorEvent += OnErrorEvent;
+            oProcessingClass.WarningEvent += OnWarningEvent;
         }
 
         private void OnWarningEvent(string message)

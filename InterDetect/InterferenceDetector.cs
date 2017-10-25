@@ -51,8 +51,8 @@ namespace InterDetect
     {
         public const string DEFAULT_RESULT_DATABASE_NAME = "Results.db3";
 
-        private const string raw_ext = ".raw";
-        private const string isos_ext = "_isos.csv";
+        private const string RAW_FILE_EXTENSION = ".raw";
+        private const string ISOS_FILE_EXTENSION = "_isos.csv";
 
         private const string SCAN_EVENT_CHARGE_STATE = "Charge State";
         private const string SCAN_EVENT_MONOISOTOPIC_MZ = "Monoisotopic M/Z";
@@ -250,8 +250,7 @@ namespace InterDetect
 
             foreach (var datasetID in dctRawFiles.Keys)
             {
-                string isosFilePath;
-                if (dctIsosFiles == null || !dctIsosFiles.TryGetValue(datasetID, out isosFilePath))
+                if (dctIsosFiles == null || !dctIsosFiles.TryGetValue(datasetID, out var isosFilePath))
                     isosFilePath = string.Empty;
 
                 fileCountCurrent++;
@@ -346,7 +345,7 @@ namespace InterDetect
                 // Some dataset folders might have multiple .raw files (one starting with x_ and another the real one)
                 // This could lead to duplicate key errors when trying to add a new entry in filepaths
                 if (!filepaths.ContainsKey(row[datasetIDIdx]))
-                    filepaths.Add(row[datasetIDIdx], Path.Combine(row[folderPathIdx], row[datasetIdx] + raw_ext));
+                    filepaths.Add(row[datasetIDIdx], Path.Combine(row[folderPathIdx], row[datasetIdx] + RAW_FILE_EXTENSION));
             }
 
             if (filepaths.Count == 0)
@@ -414,7 +413,7 @@ namespace InterDetect
                     var isosFileCandidate = Directory.GetFiles(tempIsosFolder);
                     if (isosFileCandidate.Length != 0 && File.Exists(isosFileCandidate[0]))
                     {
-                        isosPaths.Add(row[datasetID], Path.Combine(row[folder], row[dataset] + isos_ext));
+                        isosPaths.Add(row[datasetID], Path.Combine(row[folder], row[dataset] + ISOS_FILE_EXTENSION));
                     }
 
                 }
@@ -461,7 +460,7 @@ namespace InterDetect
             var rawFileReader = new XRawFileIO();
 
             // Copy the raw file locally to reduce network traffic
-            var fileTools = new PRISM.clsFileTools();
+            var fileTools = new clsFileTools();
 
             var remoteRawFile = new FileInfo(rawFilePath);
 

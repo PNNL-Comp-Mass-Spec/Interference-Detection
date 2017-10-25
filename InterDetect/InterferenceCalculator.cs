@@ -217,7 +217,7 @@ namespace InterDetect
         /// </summary>
         /// <param name="precursorInfo"></param>
         /// <param name="peaks"></param>
-        private void InterferenceCalculation(PrecursorInfo precursorInfo, List<Peak> peaks)
+        private void InterferenceCalculation(PrecursorInfo precursorInfo, IReadOnlyList<Peak> peaks)
         {
             const double PRECURSOR_ION_TOLERANCE_PPM = 15.0;
 
@@ -275,7 +275,7 @@ namespace InterDetect
             }
             else
             {
-                OnWarningEvent(string.Format("Did not find the precursor for {0:F2} in scan {1}", precursorInfo.IsolationMass, precursorInfo.ScanNumber));
+                OnWarningEvent(string.Format("Did not find the precursor for {0:F2} in scan {1}; cannot compute interference", precursorInfo.IsolationMass, precursorInfo.ScanNumber));
             }
 
             precursorInfo.Interference = overallInterference;
@@ -372,8 +372,7 @@ namespace InterDetect
             }
 
             // Only set the Precursor Intensity if we have a place to store it (usually only used for full workflow in InterferenceDetector)
-            var precursorInfoWithIntensity = precursorInfo as PrecursorIntense;
-            if (precursorInfoWithIntensity != null)
+            if (precursorInfo is PrecursorIntense precursorInfoWithIntensity)
             {
                 precursorInfoWithIntensity.PrecursorIntensity = abund;
             }

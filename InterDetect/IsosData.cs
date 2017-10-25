@@ -3,10 +3,10 @@ namespace InterDetect
 {
     public class IsosData
     {
-        public double Abundance {get; private set; }
-        public double Mz {get; private set; }
-        public int ScanNum {get; private set; }
-        public int Charge {get; private set; }
+        public double Abundance {get; }
+        public double Mz {get; }
+        public int ScanNum {get; }
+        public int Charge {get; }
 
         public IsosData(int scan, double mz, double abundance, int charge)
         {

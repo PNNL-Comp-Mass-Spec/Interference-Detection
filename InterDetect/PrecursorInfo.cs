@@ -5,9 +5,9 @@
     /// </summary>
     public class PrecursorInfo
     {
-        public double IsolationMass { get; private set; }
+        public double IsolationMass { get; }
 
-        public double IsolationWidth { get; private set; }
+        public double IsolationWidth { get; }
 
         public int ChargeState { get; private set; }
 

@@ -309,13 +309,12 @@ namespace InterDetectTests
 
         private void OnWarningEvent(string message)
         {
-            Console.WriteLine("Warning: " + message);
+            ConsoleMsgUtils.ShowWarning("Warning: " + message);
         }
 
         private void OnErrorEvent(string message, Exception ex)
         {
-            Console.WriteLine("Error: " + message);
-            Console.WriteLine(PRISM.clsStackTraceFormatter.GetExceptionStackTraceMultiLine(ex));
+            ConsoleMsgUtils.ShowError("Error: " + message, ex);
         }
 
         private void OnStatusEvent(string message)

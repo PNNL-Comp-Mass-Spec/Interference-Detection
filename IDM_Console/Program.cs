@@ -44,7 +44,7 @@ namespace IDM_Console
                 if (success)
                     Console.WriteLine("Success");
                 else
-                    Console.WriteLine("Failed");
+                    ConsoleMsgUtils.ShowError("Failed", null, false);
 
             }
             catch (Exception ex)
@@ -68,39 +68,17 @@ namespace IDM_Console
 
         private static void OnDebugEvent(string message)
         {
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine("  " + message);
-            Console.ResetColor();
+            ConsoleMsgUtils.ShowDebug(message);
         }
 
         private static void OnWarningEvent(string message)
         {
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine("Warning: " + message);
-            Console.ResetColor();
+            ConsoleMsgUtils.ShowWarning(message);
         }
 
         private static void OnErrorEvent(string errorMessage, Exception ex)
         {
-            string formattedError;
-            if (ex == null || errorMessage.EndsWith(ex.Message, StringComparison.InvariantCultureIgnoreCase))
-            {
-                formattedError = errorMessage;
-            }
-            else
-            {
-                formattedError = errorMessage + ": " + ex.Message;
-            }
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(formattedError);
-
-            if (ex != null)
-            {
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine(clsStackTraceFormatter.GetExceptionStackTraceMultiLine(ex));
-            }
-
-            Console.ResetColor();
+            ConsoleMsgUtils.ShowError(errorMessage, ex);
         }
 
         private static void OnStatusEvent(string message)

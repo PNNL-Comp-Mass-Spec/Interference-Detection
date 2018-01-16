@@ -27,9 +27,26 @@ iTRAQ or TMT data to compute interference scores.
 ## IDM Console
 
 The IDM_Console.exe program can be used to manually process a SQLite file.
-It looks for a SQLite file named Results.db3 in the working directory.
-If the file does not exist, it checks one folder above the working directory.
-If a valid file is found, it starts the interference detection workflow.
+
+```
+IDM_Console.exe 
+  InputFile.db3
+  [/Tol:PrecursorTolerancePPM] 
+  [/CSTol:ChargeStateEstimationTolerance] 
+  [/KeepTemp]
+```
+
+The input file is a SQLite database with table `T_MSMS_Raw_Files` 
+and optionally either `T_Results_Metadata_Typed` or `T_Results_Metadata`
+
+Use /Tol to specify the PPM tolerance when looking for the precursor ion in the isolation window
+The default is +/-15 PPM
+
+Use /CSTol to specify the m/z tolerance when guesstimating the charge
+The default is +/-0.01 m/z
+
+Use /KeepTemp to not delete the temporary precursor info file, `prec_info_temp.txt`
+
 
 ## Required inputs
 

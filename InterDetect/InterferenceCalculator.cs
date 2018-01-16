@@ -14,7 +14,24 @@ namespace InterDetect
         private const int NumIsotopesToCheckChargeGuess = 2;
         private const double DataBufferChargeGuess = C12_C13_MASS_DIFFERENCE * (NumIsotopesToCheckChargeGuess + 1);
 
+        public const double DEFAULT_CHARGE_STATE_GUESSTIMATION_TOLERANCE = 0.01;
+
+        public const double DEFAULT_PRECURSOR_ION_TOLERANCE_PPM = 15.0;
+
+        /// <summary>
+        /// Number of precursor ions for which the charge state could not be determined
+        /// </summary>
         public int UnknownChargeCount { get; private set; }
+
+        /// <summary>
+        /// Mass tolerance (in m/z) to use when guesstimating charge state
+        /// </summary>
+        public static double ChargeStateGuesstimationMassTol { get; set; } = DEFAULT_CHARGE_STATE_GUESSTIMATION_TOLERANCE;
+
+        /// <summary>
+        /// Tolerance (in ppm) when finding the precursor ion in the isolation window
+        /// </summary>
+        public static double PrecursorIonTolerancePPM { get; set; } = DEFAULT_PRECURSOR_ION_TOLERANCE_PPM;
 
         /// <summary>
         /// Constructor
@@ -137,8 +154,14 @@ namespace InterDetect
         public static int ChargeStateGuesstimator(double isolationMass, List<Peak> peaks)
         {
             // TODO: Is this sufficient, or should it be changed to a PPM Error tolerance?
+
             // m/z tolerance
-            const double massTol = 0.01;
+            var massTol = ChargeStateGuesstimationMassTol;
+            if (Math.Abs(massTol) < float.Epsilon)
+            {
+                massTol = 0.01;
+            }
+
             const int minChargeToCheck = 1;
             const int maxChargeToCheck = 4;
 
@@ -219,7 +242,6 @@ namespace InterDetect
         /// <param name="peaks"></param>
         private void InterferenceCalculation(PrecursorInfo precursorInfo, IReadOnlyList<Peak> peaks)
         {
-            const double PRECURSOR_ION_TOLERANCE_PPM = 15.0;
 
             double intensitySumPrecursorIons = 0;
 
@@ -228,6 +250,11 @@ namespace InterDetect
             // Fraction of observed peaks that are from the precursor
             // Higher score is better; 1 means all peaks are from the precursor
             double overallInterference = 0;
+
+            if (Math.Abs(PrecursorIonTolerancePPM) < float.Epsilon)
+            {
+                PrecursorIonTolerancePPM = DEFAULT_PRECURSOR_ION_TOLERANCE_PPM;
+            }
 
             if (peaks.Count > 0)
             {
@@ -263,7 +290,7 @@ namespace InterDetect
                     var differencePpm = Math.Abs((expectedDifference - difference) /
                                                   (precursorInfo.IsolationMass * precursorInfo.ChargeState)) * 1000000;
 
-                    if (differencePpm < PRECURSOR_ION_TOLERANCE_PPM)
+                    if (differencePpm < PrecursorIonTolerancePPM)
                     {
                         intensitySumPrecursorIons += peaks[j].Abundance;
                     }

@@ -51,6 +51,8 @@ namespace InterDetect
     {
         public const string DEFAULT_RESULT_DATABASE_NAME = "Results.db3";
 
+        public const string PRECURSOR_INFO_FILENAME = "prec_info_temp.txt";
+
         private const string RAW_FILE_EXTENSION = ".raw";
         private const string ISOS_FILE_EXTENSION = "_isos.csv";
 
@@ -79,11 +81,38 @@ namespace InterDetect
         private double[,] mSpectraData2D;
         private int mCachedPrecursorScan;
 
+        #region "Properties"
+
         /// <summary>
-        /// When true, events are thrown up the calling tree for the parent class to handle them
+        /// Mass tolerance (in m/z) to use when guesstimating charge state
         /// </summary>
-        /// <remarks>Defaults to true</remarks>
-        public bool ThrowEvents { get; set; } = true;
+        public double ChargeStateGuesstimationMassTol
+        {
+            get => InterferenceCalculator.ChargeStateGuesstimationMassTol;
+            set => InterferenceCalculator.ChargeStateGuesstimationMassTol = value;
+        }
+
+        /// <summary>
+        /// When true, delete the temporary scores file (prec_info_temp.txt) after adding the data to the SQLite database
+        /// </summary>
+        public bool DeleteTempScoresFile { get; set; }
+
+        /// <summary>
+        /// Tolerance (in ppm) when finding the precursor ion in the isolation window
+        /// </summary>
+        public double PrecursorIonTolerancePPM
+        {
+            get => InterferenceCalculator.PrecursorIonTolerancePPM;
+            set => InterferenceCalculator.PrecursorIonTolerancePPM = value;
+        }
+
+    /// <summary>
+    /// When true, events are thrown up the calling tree for the parent class to handle them
+    /// </summary>
+    /// <remarks>Defaults to true</remarks>
+    public bool ThrowEvents { get; set; } = true;
+
+        #endregion
 
         /// <summary>
         /// Constructor
@@ -200,7 +229,7 @@ namespace InterDetect
         public bool GUI_PerformWork(string outpath, string rawFilePath, string isosFilePath)
         {
             // Calculate the needed info and generate a temporary file, keep adding each dataset to this file
-            var tempPrecFilePath = outpath;
+            var tempPrecursorInfoFile = outpath;
 
             OnStatusEvent("Processing file: " + Path.GetFileName(rawFilePath));
             List<PrecursorIntense> lstPrecursorInfo = null;
@@ -215,12 +244,12 @@ namespace InterDetect
 
             if (lstPrecursorInfo == null)
             {
-                DeleteFile(tempPrecFilePath);
+                DeleteFile(tempPrecursorInfoFile);
                 OnErrorEvent("Error in PerformWork: ParentInfoPass returned null loading " + rawFilePath);
                 return false;
             }
 
-            ExportInterferenceScores(lstPrecursorInfo, "000000", tempPrecFilePath);
+            ExportInterferenceScores(lstPrecursorInfo, "000000", tempPrecursorInfoFile);
 
             OnStatusEvent("Process Complete");
             return true;
@@ -239,14 +268,14 @@ namespace InterDetect
 
             // Calculate the needed info and generate a temporary file, keep adding each dataset to this file
 
-            string tempPrecFilePath;
+            string tempPrecursorInfoFile;
 
             if (fiDatabaseFile.DirectoryName == null)
-                tempPrecFilePath = "prec_info_temp.txt";
+                tempPrecursorInfoFile = PRECURSOR_INFO_FILENAME;
             else
-                tempPrecFilePath = Path.Combine(fiDatabaseFile.DirectoryName, "prec_info_temp.txt");
+                tempPrecursorInfoFile = Path.Combine(fiDatabaseFile.DirectoryName, "prec_info_temp.txt");
 
-            DeleteFile(tempPrecFilePath);
+            DeleteFile(tempPrecursorInfoFile);
 
             foreach (var datasetID in dctRawFiles.Keys)
             {
@@ -268,7 +297,7 @@ namespace InterDetect
                     return;
                 }
 
-                ExportInterferenceScores(lstPrecursorInfo, datasetID, tempPrecFilePath);
+                ExportInterferenceScores(lstPrecursorInfo, datasetID, tempPrecursorInfoFile);
 
                 if (ShowProgressAtConsole)
                     OnStatusEvent("Iteration Complete");
@@ -279,7 +308,7 @@ namespace InterDetect
                 // Create a delimited file reader and write a new table with this info to database
                 var delimreader = new DelimitedFileReader
                 {
-                    FilePath = tempPrecFilePath
+                    FilePath = tempPrecursorInfoFile
                 };
 
                 var writer = new SQLiteWriter();
@@ -294,17 +323,17 @@ namespace InterDetect
                 var message = "Error adding table t_precursor_interference to the SqLite database: " + ex.Message;
 
                 OnErrorEvent(message, ex);
-                OnStatusEvent("Results are in file " + tempPrecFilePath);
+                OnStatusEvent("Results are in file " + tempPrecursorInfoFile);
 
                 if (ThrowEvents)
                     throw new Exception(message, ex);
             }
 
-            if (System.Net.Dns.GetHostName().ToLower().Contains("monroe"))
+            if (!DeleteTempScoresFile)
                 return;
 
             // Delete the text file that was imported into SQLite
-            DeleteFile(tempPrecFilePath);
+            DeleteFile(tempPrecursorInfoFile);
 
         }
 

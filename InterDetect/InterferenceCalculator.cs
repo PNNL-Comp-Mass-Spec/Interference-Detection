@@ -221,7 +221,7 @@ namespace InterDetect
         {
             const double PRECURSOR_ION_TOLERANCE_PPM = 15.0;
 
-            double precursorIntensitySum = 0;
+            double intensitySumPrecursorIons = 0;
 
             double intensitySumAllPeaks = 0;
 
@@ -252,7 +252,7 @@ namespace InterDetect
 
                     if (Math.Abs(deltaMzObserved) < massToleranceMz)
                     {
-                        precursorIntensitySum += peaks[j].Abundance;
+                        intensitySumPrecursorIons += peaks[j].Abundance;
                     }
                     */
 
@@ -265,13 +265,13 @@ namespace InterDetect
 
                     if (differencePpm < PRECURSOR_ION_TOLERANCE_PPM)
                     {
-                        precursorIntensitySum += peaks[j].Abundance;
+                        intensitySumPrecursorIons += peaks[j].Abundance;
                     }
 
                     intensitySumAllPeaks += peaks[j].Abundance;
                 }
 
-                overallInterference = precursorIntensitySum / intensitySumAllPeaks;
+                overallInterference = intensitySumPrecursorIons / intensitySumAllPeaks;
             }
             else
             {

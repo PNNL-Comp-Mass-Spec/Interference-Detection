@@ -324,7 +324,7 @@ namespace InterDetect
             }
         }
 
-        private bool LookupMSMSFiles(SQLiteReader reader, out Dictionary<string, string> filepaths)
+        private bool LookupMSMSFiles(SQLiteReader reader, out Dictionary<string, string> dctRawFiles)
         {
             reader.SQLText = "SELECT * FROM t_msms_raw_files;";
 
@@ -336,19 +336,30 @@ namespace InterDetect
 
             // example of reading the rows in the buffer object
             // (dump folder column values to Console)
-            var folderPathIdx = sink.ColumnIndex["Folder"];
-            var datasetIDIdx = sink.ColumnIndex["Dataset_ID"];
-            var datasetIdx = sink.ColumnIndex["Dataset"];
-            filepaths = new Dictionary<string, string>();
+            var colIndexFolderPath= sink.ColumnIndex["Folder"];
+            var colIndexDatasetID = sink.ColumnIndex["Dataset_ID"];
+            var colIndexDatasetName = sink.ColumnIndex["Dataset"];
+            dctRawFiles = new Dictionary<string, string>();
             foreach (var row in sink.Rows)
             {
                 // Some dataset folders might have multiple .raw files (one starting with x_ and another the real one)
-                // This could lead to duplicate key errors when trying to add a new entry in filepaths
-                if (!filepaths.ContainsKey(row[datasetIDIdx]))
-                    filepaths.Add(row[datasetIDIdx], Path.Combine(row[folderPathIdx], row[datasetIdx] + RAW_FILE_EXTENSION));
+                // Check for this
+
+                var datasetID = row[colIndexDatasetID];
+
+                if (dctRawFiles.TryGetValue(datasetID, out var existingRawValue))
+                {
+                    if (!existingRawValue.ToLower().StartsWith("x_"))
+                        continue;
+
+                    dctRawFiles.Remove(datasetID);
+                }
+
+                var rawFilePath = Path.Combine(row[colIndexFolderPath], row[colIndexDatasetName] + RAW_FILE_EXTENSION);
+                dctRawFiles.Add(datasetID, rawFilePath);
             }
 
-            if (filepaths.Count == 0)
+            if (dctRawFiles.Count == 0)
             {
                 var message = "Error in LookupMSMSFiles; no results found using " + reader.SQLText;
                 OnErrorEvent(message);
@@ -360,11 +371,11 @@ namespace InterDetect
             return true;
         }
 
-        private bool LookupDeconToolsInfo(SQLiteReader reader, out Dictionary<string, string> isosPaths)
+        private bool LookupDeconToolsInfo(SQLiteReader reader, out Dictionary<string, string> dctIsosFiles)
         {
             try
             {
-                var success = LookupDeconToolsInfo(reader, "T_Results_Metadata_Typed", out isosPaths);
+                var success = LookupDeconToolsInfo(reader, "T_Results_Metadata_Typed", out dctIsosFiles);
                 if (success)
                     return true;
             }
@@ -375,7 +386,7 @@ namespace InterDetect
 
             try
             {
-                var success = LookupDeconToolsInfo(reader, "t_results_metadata", out isosPaths);
+                var success = LookupDeconToolsInfo(reader, "t_results_metadata", out dctIsosFiles);
                 if (success)
                     return true;
             }
@@ -388,7 +399,7 @@ namespace InterDetect
             return false;
         }
 
-        private bool LookupDeconToolsInfo(SQLiteReader reader, string tableName, out Dictionary<string, string> isosPaths)
+        private bool LookupDeconToolsInfo(SQLiteReader reader, string tableName, out Dictionary<string, string> dctIsosFiles)
         {
             // Make a Mage sink module (simple row buffer)
             var sink = new SimpleSink();
@@ -399,21 +410,27 @@ namespace InterDetect
             // construct and run the Mage pipeline
             ProcessingPipeline.Assemble("Test_Pipeline2", reader, sink).RunRoot(null);
 
-            var datasetID = sink.ColumnIndex["Dataset_ID"];
-            var dataset = sink.ColumnIndex["Dataset"];
-            var folder = sink.ColumnIndex["Folder"];
-            isosPaths = new Dictionary<string, string>();
+            var colIndexDatasetID = sink.ColumnIndex["Dataset_ID"];
+            var colIndexDatasetName = sink.ColumnIndex["Dataset"];
+            var colIndexFolder = sink.ColumnIndex["Folder"];
+            dctIsosFiles = new Dictionary<string, string>();
 
             //store the paths indexed by datasetID in isosPaths
             foreach (var row in sink.Rows)
             {
-                var tempIsosFolder = row[folder];
+                var tempIsosFolder = row[colIndexFolder];
                 if (Directory.Exists(tempIsosFolder))
                 {
                     var isosFileCandidate = Directory.GetFiles(tempIsosFolder);
-                    if (isosFileCandidate.Length != 0 && File.Exists(isosFileCandidate[0]))
+                    if (isosFileCandidate.Length > 0)
                     {
-                        isosPaths.Add(row[datasetID], Path.Combine(row[folder], row[dataset] + ISOS_FILE_EXTENSION));
+                        var datasetID = row[colIndexDatasetID];
+
+                        if (dctIsosFiles.ContainsKey(datasetID))
+                            continue;
+
+                        var isosFilePath = Path.Combine(row[colIndexFolder], row[colIndexDatasetName] + ISOS_FILE_EXTENSION);
+                        dctIsosFiles.Add(datasetID, isosFilePath);
                     }
 
                 }
@@ -673,11 +690,12 @@ namespace InterDetect
         /// <param name="filepath"></param>
         public void ExportInterferenceScores(IEnumerable<PrecursorIntense> lstPrecursorInfo, string datasetID, string filepath)
         {
-            var fieldExistance = File.Exists(filepath);
-            using (var sw = new StreamWriter(filepath, fieldExistance))
+            var fileExists = File.Exists(filepath);
+            using (var sw = new StreamWriter(filepath, fileExists))
             {
-                if (!fieldExistance)
+                if (!fileExists)
                 {
+                    // Add the header line
                     sw.WriteLine("Dataset_ID\tScanNumber\tPrecursorScan\t" +
                                  "ParentMZ\tChargeState\t" +
                                  "IsoWidth\tInterference\t" +

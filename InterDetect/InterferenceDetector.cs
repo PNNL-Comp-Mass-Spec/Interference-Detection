@@ -605,6 +605,8 @@ namespace InterDetect
             if (scanEnd > numSpectra || scanEnd == 0)
                 scanEnd = numSpectra;
 
+            SkipConsoleWriteIfNoProgressListener = true;
+
             var interferenceCalc = new InterferenceCalculator();
 
             for (var scanNumber = scanStart; scanNumber <= scanEnd; scanNumber++)

@@ -49,10 +49,10 @@ namespace InterDetect
             var lowIndex = BinarySearch(ref spectraData2D, min, max, mzToFindLow);
 
             // TODO: Given the normal isolation widths, a linear search would likely be faster than the binary search
-            // for finding the high index, when the starting point is the low index
+            // For finding the high index, when the starting point is the low index
             var highIndex = BinarySearch(ref spectraData2D, lowIndex, max, mzToFindHigh);
 
-            //capture all peaks in isowidth+buffer
+            // Capture all peaks in isowidth+buffer
             var peaks = ConvertToPeaks(ref spectraData2D, lowIndex, highIndex);
 
             // Run the rest of the algorithm on the converted peaks

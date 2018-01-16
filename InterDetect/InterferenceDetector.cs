@@ -113,10 +113,10 @@ namespace InterDetect
         /// <param name="databaseFileName">Name of the database</param>
         public bool Run(string databaseFolderPath, string databaseFileName)
         {
-            // Keys are dataset names; values are the path to the .raw file
+            // Keys are dataset IDs; values are the path to the .raw file
             Dictionary<string, string> dctRawFiles;
 
-            // Keys are dataset names; values are the path to the _isos.csv file
+            // Keys are dataset IDs; values are the path to the _isos.csv file
             Dictionary<string, string> dctIsosFiles;
             bool success;
 
@@ -199,7 +199,7 @@ namespace InterDetect
 
         public bool GUI_PerformWork(string outpath, string rawFilePath, string isosFilePath)
         {
-            //Calculate the needed info and generate a temporary file, keep adding each dataset to this file
+            // Calculate the needed info and generate a temporary file, keep adding each dataset to this file
             var tempPrecFilePath = outpath;
 
             OnStatusEvent("Processing file: " + Path.GetFileName(rawFilePath));
@@ -230,14 +230,14 @@ namespace InterDetect
         ///
         /// </summary>
         /// <param name="fiDatabaseFile"></param>
-        /// <param name="dctRawFiles">Keys are dataset names; values are the path to the .raw file</param>
-        /// <param name="dctIsosFiles">Keys are dataset names; values are the path to the _isos.csv file</param>
+        /// <param name="dctRawFiles">Keys are dataset IDs; values are the path to the .raw file</param>
+        /// <param name="dctIsosFiles">Keys are dataset IDs; values are the path to the _isos.csv file</param>
         /// <remarks>dctIsosFiles can be null or empty since Isos files are not required</remarks>
         private void PerformWork(FileInfo fiDatabaseFile, IReadOnlyDictionary<string, string> dctRawFiles, IReadOnlyDictionary<string, string> dctIsosFiles)
         {
             var fileCountCurrent = 0;
 
-            //Calculate the needed info and generate a temporary file, keep adding each dataset to this file
+            // Calculate the needed info and generate a temporary file, keep adding each dataset to this file
 
             string tempPrecFilePath;
 
@@ -303,7 +303,7 @@ namespace InterDetect
             if (System.Net.Dns.GetHostName().ToLower().Contains("monroe"))
                 return;
 
-            // Delete the file text file that was imported into SQLite
+            // Delete the text file that was imported into SQLite
             DeleteFile(tempPrecFilePath);
 
         }
@@ -323,7 +323,13 @@ namespace InterDetect
                 OnErrorEvent("Error deleting locally cached file " + filePath + ": " + ex.Message, ex);
             }
         }
-
+        /// <summary>
+        /// Determine the paths to the Thermo .raw files
+        /// </summary>
+        /// <param name="reader"></param>
+        /// <param name="dctRawFiles">Keys are dataset IDs; values are the path to the .raw file</param>
+        /// <returns>True if success, otherwise false</returns>
+        /// <remarks>Does not validate that each .raw file exists</remarks>
         private bool LookupMSMSFiles(SQLiteReader reader, out Dictionary<string, string> dctRawFiles)
         {
             reader.SQLText = "SELECT * FROM t_msms_raw_files;";
@@ -371,6 +377,13 @@ namespace InterDetect
             return true;
         }
 
+        /// <summary>
+        /// Determine the paths to the DeconTools _isos.csv files
+        /// </summary>
+        /// <param name="reader"></param>
+        /// <param name="dctIsosFiles">Keys are dataset IDs; values are the path to the _isos.csv file</param>
+        /// <returns>True if success, otherwise false</returns>
+        /// <remarks>Does not validate that each _isos.csv file exists; only that the results folder exists and is not empty</remarks>
         private bool LookupDeconToolsInfo(SQLiteReader reader, out Dictionary<string, string> dctIsosFiles)
         {
             try
@@ -399,15 +412,22 @@ namespace InterDetect
             return false;
         }
 
+        /// <summary>
+        /// Look for DeconTools analysis jobs in the given table
+        /// </summary>
+        /// <param name="reader">SQLite Reader</param>
+        /// <param name="tableName">Table with analysis job info</param>
+        /// <param name="dctIsosFiles">Keys are dataset IDs; values are the path to the _isos.csv file</param>
+        /// <returns></returns>
         private bool LookupDeconToolsInfo(SQLiteReader reader, string tableName, out Dictionary<string, string> dctIsosFiles)
         {
             // Make a Mage sink module (simple row buffer)
             var sink = new SimpleSink();
 
-            //Add rows from other table
+            // Add rows from other table
             reader.SQLText = "SELECT * FROM " + tableName + " WHERE Tool Like 'Decon%'";
 
-            // construct and run the Mage pipeline
+            // Construct and run the Mage pipeline
             ProcessingPipeline.Assemble("Test_Pipeline2", reader, sink).RunRoot(null);
 
             var colIndexDatasetID = sink.ColumnIndex["Dataset_ID"];
@@ -415,7 +435,7 @@ namespace InterDetect
             var colIndexFolder = sink.ColumnIndex["Folder"];
             dctIsosFiles = new Dictionary<string, string>();
 
-            //store the paths indexed by datasetID in isosPaths
+            // Store the paths indexed by datasetID in isosPaths
             foreach (var row in sink.Rows)
             {
                 var tempIsosFolder = row[colIndexFolder];
@@ -547,7 +567,7 @@ namespace InterDetect
 
             var currPrecScan = 0;
 
-            //Go into each scan and collect precursor info.
+            // Go into each scan and collect precursor info.
             var progressThreshold = 0.0;
 
             if (scanStart < 1)

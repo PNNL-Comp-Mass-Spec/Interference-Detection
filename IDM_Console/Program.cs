@@ -43,17 +43,22 @@ namespace IDM_Console
                 var success = idm.Run(sourceFile.DirectoryName, sourceFile.Name);
 
                 if (success)
+                {
                     Console.WriteLine("Success");
+                    System.Threading.Thread.Sleep(750);
+                }
                 else
+                {
                     ConsoleMsgUtils.ShowError("Failed", null, false);
+                    System.Threading.Thread.Sleep(2000);
+                }
 
             }
             catch (Exception ex)
             {
                 OnErrorEvent("Error processing " + sourceFilePath + ": " + ex.Message, ex);
+                System.Threading.Thread.Sleep(2000);
             }
-
-            System.Threading.Thread.Sleep(2000);
 
         }
 

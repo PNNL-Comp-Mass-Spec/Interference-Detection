@@ -46,7 +46,7 @@ namespace InterDetect
         /// <param name="scan"></param>
         /// <param name="mz"></param>
         /// <param name="charge"></param>
-        /// <returns></returns>
+        /// <returns>True if a match was found, otherwise false</returns>
         public bool GetChargeState(int scan, double mz, ref int charge)
         {
             if (!IsParentScan(scan))

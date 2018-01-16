@@ -36,6 +36,7 @@ If a valid file is found, it starts the interference detection workflow.
 A SQLite file with the following tables.
 
 `T_MSMS_Raw_Files`
+
 | Column     | Description    |
 |------------|----------------|
 | Dataset_ID | Dataset ID     |
@@ -48,6 +49,7 @@ the dataset file path.
 
 Optionally a table with DeconTools job info.  This info can be 
 in either `T_Results_Metadata_Typed` or `T_Results_Metadata`
+
 | Column     | Description         |
 |------------|---------------------|
 | Tool       | Analysis Tool Name  |
@@ -65,6 +67,7 @@ when finding matching ions in the _isos.csv file is +/-0.005 m/z
 ### Isos.csv file
 
 The _isos.csv file is a comma separated file created by DeconTools.  Required columns:
+
 | Column     | Description   |
 |------------|---------------|
 | scan_num   | Scan number   |
@@ -98,6 +101,7 @@ then computes the interference score as
 `interferenceScore = intensitySumPrecursorIons / intensitySumAllPeaks`
 
 Example calculations
+
 | Precursor Ions Intensity sum | All Ions Intensity Sum | Inteference Score |
 |------------------------------|------------------------|-------------------|
 | 22102                        | 31812                  | 0.695             |
@@ -111,6 +115,7 @@ isolation window were from the precursor ion.
 ## Results table
 
 The program will create (or replace) table `T_Precursor_Interference` with columns:
+
 | Column            | Description             |
 |-------------------|-------------------------|
 | Dataset_ID        | Dataset ID              |

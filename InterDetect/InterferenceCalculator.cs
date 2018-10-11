@@ -8,7 +8,7 @@ namespace InterDetect
     /// <summary>
     /// Algorithm for calculating precursor interference
     /// </summary>
-    public class InterferenceCalculator : clsEventNotifier
+    public class InterferenceCalculator : EventNotifier
     {
         private const double C12_C13_MASS_DIFFERENCE = 1.0033548378;
         private const int NumIsotopesToCheckChargeGuess = 2;

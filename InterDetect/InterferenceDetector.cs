@@ -47,7 +47,7 @@ namespace InterDetect
     /// <summary>
     /// Interference detection algorithm - uses sqlite, .raw, and _isos.csv as input
     /// </summary>
-    public class InterferenceDetector : clsEventNotifier
+    public class InterferenceDetector : EventNotifier
     {
         public const string DEFAULT_RESULT_DATABASE_NAME = "Results.db3";
 
@@ -526,7 +526,7 @@ namespace InterDetect
             var rawFileReader = new XRawFileIO();
 
             // Copy the raw file locally to reduce network traffic
-            var fileTools = new clsFileTools();
+            var fileTools = new FileTools();
 
             var remoteRawFile = new FileInfo(rawFilePath);
 

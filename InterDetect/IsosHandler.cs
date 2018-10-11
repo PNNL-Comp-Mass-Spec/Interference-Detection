@@ -6,7 +6,7 @@ using PRISM;
 
 namespace InterDetect
 {
-    public class IsosHandler : clsEventNotifier
+    public class IsosHandler : EventNotifier
     {
         Dictionary<int, List<IsosData>> mParentScans;
 

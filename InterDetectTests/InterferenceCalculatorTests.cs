@@ -300,7 +300,7 @@ namespace InterDetectTests
 
         }
 
-        protected void RegisterEvents(clsEventNotifier oProcessingClass)
+        protected void RegisterEvents(EventNotifier oProcessingClass)
         {
             oProcessingClass.StatusEvent += OnStatusEvent;
             oProcessingClass.ErrorEvent += OnErrorEvent;

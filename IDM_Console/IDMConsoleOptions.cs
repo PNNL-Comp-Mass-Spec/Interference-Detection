@@ -7,7 +7,7 @@ namespace IDM_Console
 {
     class IDMConsoleOptions
     {
-        private const string PROGRAM_DATE = "January 15, 2018";
+        private const string PROGRAM_DATE = "October 11, 2018";
 
         public IDMConsoleOptions()
         {

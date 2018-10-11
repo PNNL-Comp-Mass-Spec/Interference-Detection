@@ -125,17 +125,17 @@ namespace InterDetect
         }
 
         /// <summary>
-        /// Given a datapath makes queries to the database for isos file and raw file paths.  Uses these
+        /// Given a database folder path makes queries to the database for isos file and raw file paths.  Uses these
         /// to generate an interference table and adds this table to the database
         /// </summary>
-        /// <param name="datapath">directory to the database, assumed that database is called Results.db3</param>
-        public bool Run(string datapath)
+        /// <param name="databaseFolderPath">directory to the database, assumed that database is called Results.db3</param>
+        public bool Run(string databaseFolderPath)
         {
-            return Run(datapath, DEFAULT_RESULT_DATABASE_NAME);
+            return Run(databaseFolderPath, DEFAULT_RESULT_DATABASE_NAME);
         }
 
         /// <summary>
-        /// Given a datapath makes queries to the database for isos file and raw file paths.  Uses these
+        /// Given a database folder path makes queries to the database for isos file and raw file paths.  Uses these
         /// to generate an interference table and adds this table to the database
         /// </summary>
         /// <param name="databaseFolderPath">directory to the folder with the database</param>
@@ -168,10 +168,10 @@ namespace InterDetect
                 return false;
             }
 
-            // build Mage pipeline to read contents of
+            // Build Mage pipeline to read contents of
             // a table in a SQLite database into a data buffer
 
-            // first, make the Mage SQLite reader module
+            // First, make the Mage SQLite reader module
             // and configure it to read the table
             var reader = new SQLiteReader
             {
@@ -226,10 +226,10 @@ namespace InterDetect
             return true;
         }
 
-        public bool GUI_PerformWork(string outpath, string rawFilePath, string isosFilePath)
+        public bool GUI_PerformWork(string outputFilePath, string rawFilePath, string isosFilePath)
         {
             // Calculate the needed info and generate a temporary file, keep adding each dataset to this file
-            var tempPrecursorInfoFile = outpath;
+            var tempPrecursorInfoFile = outputFilePath;
 
             OnStatusEvent("Processing file: " + Path.GetFileName(rawFilePath));
             List<PrecursorIntense> lstPrecursorInfo = null;
@@ -306,7 +306,7 @@ namespace InterDetect
             try
             {
                 // Create a delimited file reader and write a new table with this info to database
-                var delimreader = new DelimitedFileReader
+                var reader = new DelimitedFileReader
                 {
                     FilePath = tempPrecursorInfoFile
                 };
@@ -316,7 +316,7 @@ namespace InterDetect
                 writer.DbPath = fiDatabaseFile.FullName;
                 writer.TableName = tableName;
 
-                ProcessingPipeline.Assemble("ImportToSQLite", delimreader, writer).RunRoot(null);
+                ProcessingPipeline.Assemble("ImportToSQLite", reader, writer).RunRoot(null);
             }
             catch (Exception ex)
             {
@@ -509,7 +509,7 @@ namespace InterDetect
         }
 
         /// <summary>
-        /// Collects the parent ion information as well as inteference
+        /// Collects the parent ion information as well as interference
         /// </summary>
         /// <param name="fileCountCurrent">Rank order of the current dataset being processed</param>
         /// <param name="fileCountTotal">Total number of dataset files to process</param>
@@ -594,7 +594,7 @@ namespace InterDetect
             var lstPrecursorInfo = new List<PrecursorIntense>();
             var numSpectra = rawFileReader.GetNumScans();
 
-            var currPrecScan = 0;
+            var currentPrecursorScan = 0;
 
             // Go into each scan and collect precursor info.
             var progressThreshold = 0.0;
@@ -627,11 +627,11 @@ namespace InterDetect
 
                 rawFileReader.GetScanInfo(scanNumber, out clsScanInfo scanInfo);
 
-                var msorder = scanInfo.MSLevel;
+                var msOrder = scanInfo.MSLevel;
 
-                if (msorder <= 1)
+                if (msOrder <= 1)
                 {
-                    currPrecScan = scanNumber;
+                    currentPrecursorScan = scanNumber;
                     continue;
                 }
 
@@ -692,7 +692,7 @@ namespace InterDetect
                 {
                     // In some cases the raw file fails to provide a charge state, if that is the case
                     // check the isos file to see if DeconTools could figure it out.
-                    isosReader?.GetChargeState(currPrecScan, mz, ref chargeState);
+                    isosReader?.GetChargeState(currentPrecursorScan, mz, ref chargeState);
                 }
 
                 // chargeState might still be 0; that's OK
@@ -701,7 +701,7 @@ namespace InterDetect
                 var precursorInfo = new PrecursorIntense(mz, isolationWidth, chargeState)
                 {
                     ScanNumber = scanNumber,
-                    PrecursorScanNumber = currPrecScan
+                    PrecursorScanNumber = currentPrecursorScan
                 };
 
                 if (!string.IsNullOrEmpty(agcTimeText) && double.TryParse(agcTimeText, out var ionCollectionTime))
@@ -736,7 +736,7 @@ namespace InterDetect
         /// This data will be loaded into SQLite later
         /// </summary>
         /// <param name="lstPrecursorInfo"></param>
-        /// <param name="datasetID">Id number is a string because thats what sql gives me and there
+        /// <param name="datasetID">Id number is a string because that's what sql gives me and there
         /// is no point in switching it back and forth</param>
         /// <param name="filepath"></param>
         public void ExportInterferenceScores(IEnumerable<PrecursorIntense> lstPrecursorInfo, string datasetID, string filepath)

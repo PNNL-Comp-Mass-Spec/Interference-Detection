@@ -166,15 +166,15 @@ namespace InterDetect
             const int maxChargeToCheck = 4;
 
             // One entry per charge; key=charge, value=sum of intensities of matching peaks
-            var chargesAbund = new Dictionary<int, double>();
+            var chargeAbundance = new Dictionary<int, double>();
 
             // List of all masses to check, duplicates allowed
             var massesToCheck = new List<MassChargeData>();
 
-            // Add initial data to chargesAbund, and configure massesToCheck
+            // Add initial data to chargeAbundance, and configure massesToCheck
             for (var i = minChargeToCheck; i <= maxChargeToCheck; i++)
             {
-                chargesAbund.Add(i, 0);
+                chargeAbundance.Add(i, 0);
 
                 // Add the isolation mass for each charge being checked
                 massesToCheck.Add(new MassChargeData(isolationMass, i));
@@ -198,21 +198,24 @@ namespace InterDetect
             foreach (var peak in peaks.OrderBy(x => x.Mz))
             {
                 var mz = peak.Mz;
-                var abund = peak.Abundance;
-                // Skip - not in range yet
+                var intensity = peak.Abundance;
+
                 if (mz < minMass)
                 {
+                    // Skip - not in range yet
                     continue;
                 }
-                // Stop - past the range
+
                 if (maxMass < mz)
                 {
+                    // Stop - past the range
                     break;
                 }
+
                 // IsolationMass intensity, for determining if there were no other peaks that matched a charge state
                 if (isolationMass - massTol <= mz && mz <= isolationMass + massTol)
                 {
-                    isoMassInt += abund;
+                    isoMassInt += intensity;
                 }
 
                 var minMz = mz - massTol;
@@ -220,11 +223,11 @@ namespace InterDetect
                 // Add the matching m/z's intensities to the appropriate charge abundances
                 foreach (var match in massesToCheck.Where(x => minMz <= x.Mass && x.Mass <= maxMz))
                 {
-                    chargesAbund[match.Charge] += abund;
+                    chargeAbundance[match.Charge] += intensity;
                 }
             }
 
-            var mostIntense = chargesAbund.OrderByDescending(x => x.Value).First();
+            var mostIntense = chargeAbundance.OrderByDescending(x => x.Value).First();
 
             // If the only peak m/z that was matched was the isolation mass, then we didn't find anything.
             if (mostIntense.Value.Equals(isoMassInt))
@@ -386,7 +389,7 @@ namespace InterDetect
         private void ClosestToTarget(PrecursorInfo precursorInfo, IEnumerable<Peak> peaks)
         {
             var closest = 100000.0;
-            var abund = 0.0;
+            var intensity = 0.0;
             foreach (var p in peaks)
             {
                 var temp = Math.Abs(p.Mz - precursorInfo.IsolationMass);
@@ -394,14 +397,14 @@ namespace InterDetect
                 {
                     precursorInfo.ActualMass = p.Mz;
                     closest = temp;
-                    abund = p.Abundance;
+                    intensity = p.Abundance;
                 }
             }
 
             // Only set the Precursor Intensity if we have a place to store it (usually only used for full workflow in InterferenceDetector)
             if (precursorInfo is PrecursorIntense precursorInfoWithIntensity)
             {
-                precursorInfoWithIntensity.PrecursorIntensity = abund;
+                precursorInfoWithIntensity.PrecursorIntensity = intensity;
             }
         }
 

@@ -173,9 +173,9 @@ namespace InterDetectTests
             interferenceCalc.Interference(precursorInfo, peakList);
 
             Assert.AreEqual(expectedInterference, precursorInfo.Interference, 0.01,
-                            "Computed inteference did not match expected: {0:F4} vs. {1:F4}", expectedInterference, precursorInfo.Interference);
+                            "Computed interference did not match expected: {0:F4} vs. {1:F4}", expectedInterference, precursorInfo.Interference);
 
-            Console.WriteLine("Computed inteference score of {0:F3} for {1:F4} m/z, charge {2}",
+            Console.WriteLine("Computed interference score of {0:F3} for {1:F4} m/z, charge {2}",
                 precursorInfo.Interference, precursorInfo.IsolationMass, precursorInfo.ChargeState);
         }
 

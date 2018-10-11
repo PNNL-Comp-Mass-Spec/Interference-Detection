@@ -73,7 +73,7 @@ namespace InterDetect
         ///// <summary>
         ///// Get a peak list for this range and scan number.
         ///// </summary>
-        ///// <param name="scan">scannumber</param>
+        ///// <param name="scan">scan number</param>
         ///// <param name="low">low mz value</param>
         ///// <param name="high">high mz value</param>
         ///// <returns></returns>
@@ -103,10 +103,10 @@ namespace InterDetect
         // Unused function
         //
         ///// <summary>
-        ///// More efficient version of the getpeaklist.
+        ///// More efficient version of the GetPeakList.
         ///// Get a peak list for this range and scan number.
         ///// </summary>
-        ///// <param name="scan">scannumber</param>
+        ///// <param name="scan">scan number</param>
         ///// <param name="low">low mz value</param>
         ///// <param name="high">high mz value</param>
         ///// <returns></returns>
@@ -160,7 +160,7 @@ namespace InterDetect
         // Unused function
         //
         ///// <summary>
-        ///// Writes a datatable to text file
+        ///// Writes a data table to text file
         ///// </summary>
         ///// <param name="dt"></param>
         ///// <param name="filePath"></param>
@@ -190,7 +190,7 @@ namespace InterDetect
         //}
 
         /// <summary>
-        /// Converts a text file to a datatable
+        /// Converts a text file to a data table
         /// </summary>
         /// <param name="fileName"></param>
         /// <returns></returns>
@@ -216,7 +216,7 @@ namespace InterDetect
                     var abundanceColIndex = -1;
                     var mzColIndex = -1;
                     var scanColIndex = -1;
-                    var chargeColndex = -1;
+                    var chargeColIndex = -1;
 
                     var headerLine = sr.ReadLine();
 
@@ -246,7 +246,7 @@ namespace InterDetect
                                 scanColIndex = i;
                                 break;
                             case "charge":
-                                chargeColndex = i;
+                                chargeColIndex = i;
                                 break;
                         }
                     }
@@ -256,7 +256,7 @@ namespace InterDetect
                     if (abundanceColIndex < 0) columnError = "Isos files does not have column: abundance";
                     else if (mzColIndex < 0) columnError = "Isos files does not have column: mz";
                     else if (scanColIndex < 0) columnError = "Isos files does not have column: scan_num";
-                    else if (chargeColndex < 0) columnError = "Isos files does not have column: charge";
+                    else if (chargeColIndex < 0) columnError = "Isos files does not have column: charge";
 
                     if (!string.IsNullOrEmpty(columnError))
                     {
@@ -278,7 +278,7 @@ namespace InterDetect
                         var abundance = GetValueDbl(dataValues, abundanceColIndex, 0);
                         var mz = GetValueDbl(dataValues, mzColIndex, 0);
                         var scan = GetValueInt(dataValues, scanColIndex, 0);
-                        var charge = GetValueInt(dataValues, chargeColndex, 0);
+                        var charge = GetValueInt(dataValues, chargeColIndex, 0);
 
                         var isosEntry = new IsosData(scan, mz, abundance, charge);
 

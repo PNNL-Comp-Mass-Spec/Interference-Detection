@@ -25,9 +25,9 @@ namespace IDM_Console
                                   "the homogeneity of species isolated for fragmentation in " +
                                   "LC-MS/MS analyses using data directed acquisition (DDA). " +
                                   "It works with Thermo .Raw files and _isos.csv files from DeconTools. " +
-                                  "The inteference score computed for each parent ion is the " +
+                                  "The interference score computed for each parent ion is the " +
                                   "fraction of ions in the isolation window that are from the precursor " +
-                                  "(weighted by intensity). An inteference score of 1 means that " +
+                                  "(weighted by intensity). An interference score of 1 means that " +
                                   "all of the peaks in the isolation window were from the precursor ion.",
 
                     ContactInfo = "Program written by Josh Aldrich for the Department of Energy (PNNL, Richland, WA) in 2012" +
@@ -103,7 +103,7 @@ namespace IDM_Console
 
         private static void RegisterEvents(InterferenceDetector idm)
         {
-            idm.ProgressChanged += InterfenceDetectorProgressHandler;
+            idm.ProgressChanged += InterferenceDetectorProgressHandler;
 
             idm.DebugEvent += OnDebugEvent;
             idm.StatusEvent += OnStatusEvent;
@@ -131,7 +131,7 @@ namespace IDM_Console
             Console.WriteLine(message);
         }
 
-        private static void InterfenceDetectorProgressHandler(InterferenceDetector id, ProgressInfo e)
+        private static void InterferenceDetectorProgressHandler(InterferenceDetector idm, ProgressInfo e)
         {
             Console.WriteLine(e.ProgressCurrentFile.ToString("0.0") + "% complete; " + e.Value.ToString("0.0") + "% complete overall");
         }

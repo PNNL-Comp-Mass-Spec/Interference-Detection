@@ -538,18 +538,24 @@ namespace InterDetect
                 return new List<PrecursorIntense>();
             }
 
-            var rawFilePathLocal = Path.Combine(WorkDir, remoteRawFile.Name);
+            var localRawFile = new FileInfo(Path.Combine(WorkDir, remoteRawFile.Name));
+            bool deleteLocalFile;
 
-            if (!string.Equals(rawFilePath, rawFilePathLocal))
+            if (!string.Equals(remoteRawFile.FullName, localRawFile.FullName, StringComparison.OrdinalIgnoreCase))
             {
-                OnStatusEvent(string.Format("Copying {0} to the local computer", remoteRawFile.FullName));
-                fileTools.CopyFileUsingLocks(remoteRawFile.FullName, rawFilePathLocal, "IDM");
+                OnStatusEvent(string.Format("Copying {0} to {1}", remoteRawFile.FullName, localRawFile.FullName));
+                fileTools.CopyFileUsingLocks(remoteRawFile.FullName, localRawFile.FullName, "IDM");
+                deleteLocalFile = true;
+            }
+            else
+            {
+                deleteLocalFile = false;
             }
 
-            var success = rawFileReader.OpenRawFile(rawFilePathLocal);
+            var success = rawFileReader.OpenRawFile(localRawFile.FullName);
             if (!success)
             {
-                var message = "File failed to open .Raw file in ParentInfoPass: " + rawFilePathLocal;
+                var message = "Failed to open .Raw file in ParentInfoPass: " + localRawFile.FullName;
                 OnErrorEvent(message);
                 if (ThrowEvents)
                     throw new Exception(message);
@@ -578,11 +584,12 @@ namespace InterDetect
                 {
 
                     isosFilePathLocal = Path.Combine(WorkDir, remoteIsosFile.Name);
+                    var localIsosFile = new FileInfo(isosFilePathLocal);
 
-                    if (!string.Equals(isosFilePath, isosFilePathLocal))
+                    if (!string.Equals(remoteIsosFile.FullName, localIsosFile.FullName, StringComparison.OrdinalIgnoreCase))
                     {
-                        OnStatusEvent(string.Format("Copying {0} to the local computer", remoteIsosFile.FullName));
-                        fileTools.CopyFileUsingLocks(remoteIsosFile.FullName, isosFilePathLocal, "IDM");
+                        OnStatusEvent(string.Format("Copying {0} to {1}", remoteIsosFile.FullName, localIsosFile.FullName));
+                        fileTools.CopyFileUsingLocks(remoteIsosFile.FullName, localIsosFile.FullName, "IDM");
                     }
 
                     isosReader = new IsosHandler(isosFilePathLocal, ThrowEvents);
@@ -722,8 +729,11 @@ namespace InterDetect
                     interferenceCalc.UnknownChargeCount, lstPrecursorInfo.Count));
             }
 
-            // Delete the locally cached raw file
-            DeleteFile(rawFilePathLocal);
+            if (deleteLocalFile)
+            {
+                // Delete the locally cached raw file
+                DeleteFile(localRawFile.FullName);
+            }
 
             // Delete the locally cached isos file (if it exists)
             DeleteFile(isosFilePathLocal);

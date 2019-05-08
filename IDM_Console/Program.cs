@@ -87,7 +87,7 @@ namespace IDM_Console
                     return 0;
                 }
 
-                ConsoleMsgUtils.ShowError("Failed", null, false);
+                ConsoleMsgUtils.ShowErrorCustom("Failed", null, false);
                 Thread.Sleep(2000);
                 return -1;
 

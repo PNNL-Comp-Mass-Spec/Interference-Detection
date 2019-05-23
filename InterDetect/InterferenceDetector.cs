@@ -128,19 +128,19 @@ namespace InterDetect
         /// Obtain isos and raw file paths from a SQLite database named Results.db3
         /// Use these to compute precursor interference values, storing the results in table t_precursor_interference in the database
         /// </summary>
-        /// <param name="databaseFolderPath">directory to the database, assumed that database is called Results.db3</param>
-        public bool Run(string databaseFolderPath)
+        /// <param name="databaseDirectoryPath">Directory with the SQLite database</param>
+        public bool Run(string databaseDirectoryPath)
         {
-            return Run(databaseFolderPath, DEFAULT_RESULT_DATABASE_NAME);
+            return Run(databaseDirectoryPath, DEFAULT_RESULT_DATABASE_NAME);
         }
 
         /// <summary>
         /// Obtain isos and raw file paths from the specified SQLite database.
         /// Use these to compute precursor interference values, storing the results in table t_precursor_interference in the database
         /// </summary>
-        /// <param name="databaseFolderPath">directory to the folder with the database</param>
+        /// <param name="databaseDirectoryPath">Directory with the SQLite database</param>
         /// <param name="databaseFileName">Name of the database</param>
-        public bool Run(string databaseFolderPath, string databaseFileName)
+        public bool Run(string databaseDirectoryPath, string databaseFileName)
         {
             // Keys are dataset IDs; values are the path to the .raw file
             Dictionary<string, string> dctRawFiles;
@@ -149,7 +149,7 @@ namespace InterDetect
             Dictionary<string, string> dctIsosFiles;
             bool success;
 
-            var diDataFolder = new DirectoryInfo(databaseFolderPath);
+            var diDataFolder = new DirectoryInfo(databaseDirectoryPath);
             if (!diDataFolder.Exists)
             {
                 var message = "Database folder not found: " + databaseFolderPath;
@@ -752,28 +752,28 @@ namespace InterDetect
         public void ExportInterferenceScores(IEnumerable<PrecursorIntense> lstPrecursorInfo, string datasetID, string filepath)
         {
             var fileExists = File.Exists(filepath);
-            using (var sw = new StreamWriter(filepath, fileExists))
+            using (var writer = new StreamWriter(filepath, fileExists))
             {
                 if (!fileExists)
                 {
                     // Add the header line
-                    sw.WriteLine("Dataset_ID\tScanNumber\tPrecursorScan\t" +
-                                 "ParentMZ\tChargeState\t" +
-                                 "IsoWidth\tInterference\t" +
-                                 "PreIntensity\tIonCollectionTime");
+                    writer.WriteLine("Dataset_ID\tScanNumber\tPrecursorScan\t" +
+                                     "ParentMZ\tChargeState\t" +
+                                     "IsoWidth\tInterference\t" +
+                                     "PreIntensity\tIonCollectionTime");
                 }
 
                 foreach (var info in lstPrecursorInfo)
                 {
-                    sw.WriteLine(datasetID + "\t" +
-                                 info.ScanNumber + "\t" +
-                                 info.PrecursorScanNumber + "\t" +
-                                 NumToString(info.IsolationMass, 5) + "\t" +
-                                 info.ChargeState + "\t" +
-                                 NumToString(info.IsolationWidth, 3) + "\t" +
-                                 NumToString(info.Interference, 4) + "\t" +
-                                 NumToString(info.PrecursorIntensity, 2) + "\t" +
-                                 NumToString(info.IonCollectionTime, 2));
+                    writer.WriteLine(datasetID + "\t" +
+                                     info.ScanNumber + "\t" +
+                                     info.PrecursorScanNumber + "\t" +
+                                     NumToString(info.IsolationMass, 5) + "\t" +
+                                     info.ChargeState + "\t" +
+                                     NumToString(info.IsolationWidth, 3) + "\t" +
+                                     NumToString(info.Interference, 4) + "\t" +
+                                     NumToString(info.PrecursorIntensity, 2) + "\t" +
+                                     NumToString(info.IonCollectionTime, 2));
                 }
             }
         }

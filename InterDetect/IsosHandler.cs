@@ -202,9 +202,9 @@ namespace InterDetect
 
                 var lstIsosData = new List<IsosData>();
 
-                using (var sr = new StreamReader(new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)))
+                using (var reader = new StreamReader(new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)))
                 {
-                    if (sr.EndOfStream)
+                    if (reader.EndOfStream)
                     {
                         var message = "Data file is empty: " + fileName;
                         OnErrorEvent(message);
@@ -218,7 +218,7 @@ namespace InterDetect
                     var scanColIndex = -1;
                     var chargeColIndex = -1;
 
-                    var headerLine = sr.ReadLine();
+                    var headerLine = reader.ReadLine();
 
                     if (string.IsNullOrWhiteSpace(headerLine))
                     {
@@ -267,9 +267,9 @@ namespace InterDetect
                     }
 
                     // fill the rest of the table
-                    while (!sr.EndOfStream)
+                    while (!reader.EndOfStream)
                     {
-                        var line = sr.ReadLine();
+                        var line = reader.ReadLine();
                         if (string.IsNullOrEmpty(line))
                             continue;
 

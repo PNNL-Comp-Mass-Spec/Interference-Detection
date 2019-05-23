@@ -42,10 +42,11 @@ namespace InterDetect
         }
 
         /// <summary>
-        /// Calculate the interference for the scan based on the provided data
+        /// Calculate the interference for the precursor ion, storing in precursorInfo.Interference
         /// </summary>
         /// <param name="precursorInfo">Precursor info: must set IsolationMass, ChargeState, IsolationWidth</param>
         /// <param name="spectraData2D">Array of centroided peak data of size [2,x], where [0,0] is first m/z and [1,0] is first intensity</param>
+        /// <remarks>If peakData is empty, or if no peaks are found for in the region centered around the parent ion, sets the interference value to 1</remarks>
         public void Interference(PrecursorInfo precursorInfo, double[,] spectraData2D)
         {
             var mzToFindLow = precursorInfo.IsolationMass - (precursorInfo.IsolationWidth);
@@ -77,10 +78,11 @@ namespace InterDetect
         }
 
         /// <summary>
-        /// Calculate the interference for the scan based on the provided data
+        /// Calculate the interference for the precursor ion, storing in precursorInfo.Interference
         /// </summary>
         /// <param name="precursorInfo">Precursor info: must set IsolationMass, ChargeState, IsolationWidth</param>
-        /// <param name="peakData">list of centroided peakData</param>
+        /// <param name="peakData">List of centroided peaks</param>
+        /// <remarks>If peakData is empty, or if no peaks are found for in the region centered around the parent ion, sets the interference value to 1</remarks>
         public void Interference(PrecursorInfo precursorInfo, List<Peak> peakData)
         {
 
@@ -118,9 +120,21 @@ namespace InterDetect
 
         private struct MassChargeData
         {
+            /// <summary>
+            /// m/z
+            /// </summary>
             public readonly double Mass;
+
+            /// <summary>
+            /// Charge
+            /// </summary>
             public readonly int Charge;
 
+            /// <summary>
+            /// Constructor
+            /// </summary>
+            /// <param name="mass"></param>
+            /// <param name="charge"></param>
             public MassChargeData(double mass, int charge)
             {
                 Mass = mass;
@@ -202,13 +216,13 @@ namespace InterDetect
 
                 if (mz < minMass)
                 {
-                    // Skip - not in range yet
+                    // Skip: not yet in range
                     continue;
                 }
 
                 if (maxMass < mz)
                 {
-                    // Stop - past the range
+                    // Stop: surpassed maxMass
                     break;
                 }
 
@@ -220,6 +234,7 @@ namespace InterDetect
 
                 var minMz = mz - massTol;
                 var maxMz = mz + massTol;
+
                 // Add the matching m/z's intensities to the appropriate charge abundances
                 foreach (var match in massesToCheck.Where(x => minMz <= x.Mass && x.Mass <= maxMz))
                 {
@@ -239,10 +254,11 @@ namespace InterDetect
         }
 
         /// <summary>
-        /// Calculates interference with the precursor ion
+        /// Calculates interference with the precursor ion, storing in precursorInfo.Interference
         /// </summary>
-        /// <param name="precursorInfo"></param>
-        /// <param name="peaks"></param>
+        /// <param name="precursorInfo">Precursor info</param>
+        /// <param name="peaks">Centroided peaks</param>
+        /// <remarks>If peaks is empty, or if no peaks are found for in the region centered around the parent ion, sets the interference value to 1</remarks>
         private void InterferenceCalculation(PrecursorInfo precursorInfo, IReadOnlyList<Peak> peaks)
         {
 
@@ -251,8 +267,8 @@ namespace InterDetect
             double intensitySumAllPeaks = 0;
 
             // Fraction of observed peaks that are from the precursor
-            // Higher score is better; 1 means all peaks are from the precursor
             double overallInterference = 0;
+            // Higher score is better; 1 means all peaks are from the precursor (or no peaks are found in the window)
 
             if (Math.Abs(PrecursorIonTolerancePPM) < float.Epsilon)
             {
@@ -411,9 +427,9 @@ namespace InterDetect
         /// <summary>
         /// Filters the peak list to only retain peaks between lowMz and highMz
         /// </summary>
-        /// <param name="lowMz"></param>
-        /// <param name="highMz"></param>
-        /// <param name="peaks"></param>
+        /// <param name="lowMz">Minimum m/z</param>
+        /// <param name="highMz">Maximum m/z</param>
+        /// <param name="peaks">List of peaks</param>
         private List<Peak> FilterPeaksByMZ(double lowMz, double highMz, IEnumerable<Peak> peaks)
         {
             return peaks.Where(x => lowMz < x.Mz && x.Mz < highMz).OrderBy(x => x.Mz).ToList();

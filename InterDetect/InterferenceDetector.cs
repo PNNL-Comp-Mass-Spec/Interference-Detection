@@ -125,8 +125,8 @@ namespace InterDetect
         }
 
         /// <summary>
-        /// Given a database folder path makes queries to the database for isos file and raw file paths.  Uses these
-        /// to generate an interference table and adds this table to the database
+        /// Obtain isos and raw file paths from a SQLite database named Results.db3
+        /// Use these to compute precursor interference values, storing the results in table t_precursor_interference in the database
         /// </summary>
         /// <param name="databaseFolderPath">directory to the database, assumed that database is called Results.db3</param>
         public bool Run(string databaseFolderPath)
@@ -135,8 +135,8 @@ namespace InterDetect
         }
 
         /// <summary>
-        /// Given a database folder path makes queries to the database for isos file and raw file paths.  Uses these
-        /// to generate an interference table and adds this table to the database
+        /// Obtain isos and raw file paths from the specified SQLite database.
+        /// Use these to compute precursor interference values, storing the results in table t_precursor_interference in the database
         /// </summary>
         /// <param name="databaseFolderPath">directory to the folder with the database</param>
         /// <param name="databaseFileName">Name of the database</param>
@@ -353,7 +353,7 @@ namespace InterDetect
             }
         }
         /// <summary>
-        /// Determine the paths to the Thermo .raw files
+        /// Query table t_msms_raw_files in the SQLite database to determine the Thermo .raw files to process
         /// </summary>
         /// <param name="reader"></param>
         /// <param name="dctRawFiles">Keys are dataset IDs; values are the path to the .raw file</param>
@@ -366,10 +366,10 @@ namespace InterDetect
             // Make a Mage sink module (simple row buffer)
             var sink = new SimpleSink();
 
-            // construct and run the Mage pipeline to obtain data from t_msms_raw_files
+            // Construct and run a Mage pipeline to obtain data from t_msms_raw_files
             ProcessingPipeline.Assemble("Test_Pipeline", reader, sink).RunRoot(null);
 
-            // example of reading the rows in the buffer object
+            // Example of reading the rows in the buffer object
             // (dump folder column values to Console)
             var colIndexFolderPath= sink.ColumnIndex["Folder"];
             var colIndexDatasetID = sink.ColumnIndex["Dataset_ID"];
@@ -407,7 +407,7 @@ namespace InterDetect
         }
 
         /// <summary>
-        /// Determine the paths to the DeconTools _isos.csv files
+        /// Query table T_Results_Metadata_Typed in the SQLite database to determine the DeconTools _isos.csv files to use
         /// </summary>
         /// <param name="reader"></param>
         /// <param name="dctIsosFiles">Keys are dataset IDs; values are the path to the _isos.csv file</param>

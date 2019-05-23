@@ -96,7 +96,7 @@ namespace InterDetect
                     if (UnknownChargeCount <= 15)
                     {
                         OnWarningEvent(string.Format("Charge state for {0:F2} in scan {1} not supplied, and could not guesstimate it. " +
-                                          "Giving bad score.", precursorInfo.IsolationMass, precursorInfo.ScanNumber));
+                                          "Assigning interference score 0.", precursorInfo.IsolationMass, precursorInfo.ScanNumber));
                     }
 
                     UnknownChargeCount++;

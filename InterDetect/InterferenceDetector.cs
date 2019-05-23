@@ -152,7 +152,7 @@ namespace InterDetect
             var diDataFolder = new DirectoryInfo(databaseDirectoryPath);
             if (!diDataFolder.Exists)
             {
-                var message = "Database folder not found: " + databaseFolderPath;
+                var message = "SQLite database directory not found: " + databaseDirectoryPath;
                 OnErrorEvent(message);
                 if (ThrowEvents)
                     throw new DirectoryNotFoundException(message);
@@ -161,7 +161,7 @@ namespace InterDetect
             var fiDatabaseFile = new FileInfo(Path.Combine(diDataFolder.FullName, databaseFileName));
             if (!fiDatabaseFile.Exists)
             {
-                var message = "Database not found: " + fiDatabaseFile.FullName;
+                var message = "SQLite database not found: " + fiDatabaseFile.FullName;
                 OnErrorEvent(message);
                 if (ThrowEvents)
                     throw new FileNotFoundException(message);

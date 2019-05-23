@@ -46,7 +46,8 @@ namespace InterDetect
         /// </summary>
         /// <param name="precursorInfo">Precursor info: must set IsolationMass, ChargeState, IsolationWidth</param>
         /// <param name="spectraData2D">Array of centroided peak data of size [2,x], where [0,0] is first m/z and [1,0] is first intensity</param>
-        /// <remarks>If peakData is empty, or if no peaks are found for in the region centered around the parent ion, sets the interference value to 1</remarks>
+        /// If spectraData2D is empty, or if no peaks are found for in the region centered around the parent ion,
+        /// sets the interference value to 1 since the instrument likely isolated a low intensity precursor ion
         public void Interference(PrecursorInfo precursorInfo, double[,] spectraData2D)
         {
             var mzToFindLow = precursorInfo.IsolationMass - (precursorInfo.IsolationWidth);
@@ -82,7 +83,8 @@ namespace InterDetect
         /// </summary>
         /// <param name="precursorInfo">Precursor info: must set IsolationMass, ChargeState, IsolationWidth</param>
         /// <param name="peakData">List of centroided peaks</param>
-        /// <remarks>If peakData is empty, or if no peaks are found for in the region centered around the parent ion, sets the interference value to 1</remarks>
+        /// If peakData is empty, or if no peaks are found for in the region centered around the parent ion,
+        /// sets the interference value to 1 since the instrument likely isolated a low intensity precursor ion
         public void Interference(PrecursorInfo precursorInfo, List<Peak> peakData)
         {
 
@@ -258,7 +260,10 @@ namespace InterDetect
         /// </summary>
         /// <param name="precursorInfo">Precursor info</param>
         /// <param name="peaks">Centroided peaks</param>
-        /// <remarks>If peaks is empty, or if no peaks are found for in the region centered around the parent ion, sets the interference value to 1</remarks>
+        /// <remarks>
+        /// If peaks is empty, or if no peaks are found for in the region centered around the parent ion,
+        /// sets the interference value to 1 since the instrument likely isolated a low intensity precursor ion
+        /// </remarks>
         private void InterferenceCalculation(PrecursorInfo precursorInfo, IReadOnlyList<Peak> peaks)
         {
 
@@ -267,8 +272,8 @@ namespace InterDetect
             double intensitySumAllPeaks = 0;
 
             // Fraction of observed peaks that are from the precursor
-            double overallInterference = 0;
             // Higher score is better; 1 means all peaks are from the precursor (or no peaks are found in the window)
+            double overallInterference;
 
             if (Math.Abs(PrecursorIonTolerancePPM) < float.Epsilon)
             {
@@ -321,7 +326,11 @@ namespace InterDetect
             }
             else
             {
-                OnWarningEvent(string.Format("Did not find the precursor for {0:F2} in scan {1}; cannot compute interference", precursorInfo.IsolationMass, precursorInfo.ScanNumber));
+                OnWarningEvent(string.Format("Did not find the precursor for {0:F2} in scan {1}; cannot compute interference",
+                                             precursorInfo.IsolationMass, precursorInfo.ScanNumber));
+
+                // Optimistically use an interference score of 1, since it's possible that a low intensity peak was isolated
+                overallInterference = 1;
             }
 
             precursorInfo.Interference = overallInterference;

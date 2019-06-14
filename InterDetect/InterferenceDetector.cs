@@ -344,6 +344,18 @@ namespace InterDetect
                 OnErrorEvent("Error deleting locally cached file " + filePath + ": " + ex.Message, ex);
             }
         }
+
+        private int GetDirectoryColumnIndex(SimpleSink sink)
+        {
+            if (sink.ColumnIndex.TryGetValue("Directory", out var colIndexDirectoryPath))
+                return colIndexDirectoryPath;
+
+            if (sink.ColumnIndex.TryGetValue("Folder", out var colFolderPath))
+                return colFolderPath;
+
+            return -1;
+        }
+
         /// <summary>
         /// Query table t_msms_raw_files in the SQLite database to determine the Thermo .raw files to process
         /// </summary>
@@ -361,12 +373,21 @@ namespace InterDetect
             // Construct and run a Mage pipeline to obtain data from t_msms_raw_files
             ProcessingPipeline.Assemble("Test_Pipeline", reader, sink).RunRoot(null);
 
-            // Example of reading the rows in the buffer object
-            // (dump folder column values to Console)
-            var colIndexFolderPath= sink.ColumnIndex["Folder"];
+            dctRawFiles = new Dictionary<string, string>();
+
+            var colIndexDirectoryPath = GetDirectoryColumnIndex(sink);
+            if (colIndexDirectoryPath < 0)
+            {
+                var message = "Error in LookupMSMSFiles; table t_msms_raw_files does not have column Directory or Folder";
+                OnErrorEvent(message);
+                if (ThrowEvents)
+                    throw new Exception(message);
+
+                return false;
+            }
+
             var colIndexDatasetID = sink.ColumnIndex["Dataset_ID"];
             var colIndexDatasetName = sink.ColumnIndex["Dataset"];
-            dctRawFiles = new Dictionary<string, string>();
             foreach (var row in sink.Rows)
             {
                 // Some dataset directories might have multiple .raw files (one starting with x_ and another the real one)
@@ -452,10 +473,21 @@ namespace InterDetect
             // Construct and run the Mage pipeline
             ProcessingPipeline.Assemble("Test_Pipeline2", reader, sink).RunRoot(null);
 
+            dctIsosFiles = new Dictionary<string, string>();
+
             var colIndexDatasetID = sink.ColumnIndex["Dataset_ID"];
             var colIndexDatasetName = sink.ColumnIndex["Dataset"];
-            var colIndexFolder = sink.ColumnIndex["Folder"];
-            dctIsosFiles = new Dictionary<string, string>();
+
+            var colIndexDirectoryPath = GetDirectoryColumnIndex(sink);
+            if (colIndexDirectoryPath < 0)
+            {
+                var message = string.Format("Error in LookupDeconToolsInfo; table {0} does not have column Directory or Folder", tableName);
+                OnErrorEvent(message);
+                if (ThrowEvents)
+                    throw new Exception(message);
+
+                return false;
+            }
 
             // Store the paths indexed by datasetID in isosPaths
             foreach (var row in sink.Rows)

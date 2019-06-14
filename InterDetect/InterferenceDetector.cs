@@ -65,14 +65,6 @@ namespace InterDetect
         public bool ShowProgressAtConsole { get; set; }
         public string WorkDir { get; set; }
 
-        protected struct ScanEventIndicesType
-        {
-            public int ChargeState;
-            public int Mz;
-            public int IsolationWidth;
-            public int AgcTime;
-        };
-
         public event ProgressChangedHandler ProgressChanged;
         public delegate void ProgressChangedHandler(InterferenceDetector id, ProgressInfo e);
 
@@ -106,11 +98,11 @@ namespace InterDetect
             set => InterferenceCalculator.PrecursorIonTolerancePPM = value;
         }
 
-    /// <summary>
-    /// When true, events are thrown up the calling tree for the parent class to handle them
-    /// </summary>
-    /// <remarks>Defaults to true</remarks>
-    public bool ThrowEvents { get; set; } = true;
+        /// <summary>
+        /// When true, events are thrown up the calling tree for the parent class to handle them
+        /// </summary>
+        /// <remarks>Defaults to true</remarks>
+        public bool ThrowEvents { get; set; } = true;
 
         #endregion
 
@@ -149,8 +141,8 @@ namespace InterDetect
             Dictionary<string, string> dctIsosFiles;
             bool success;
 
-            var diDataFolder = new DirectoryInfo(databaseDirectoryPath);
-            if (!diDataFolder.Exists)
+            var databaseDirectory = new DirectoryInfo(databaseDirectoryPath);
+            if (!databaseDirectory.Exists)
             {
                 var message = "SQLite database directory not found: " + databaseDirectoryPath;
                 OnErrorEvent(message);

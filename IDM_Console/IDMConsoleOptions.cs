@@ -9,6 +9,9 @@ namespace IDM_Console
     {
         private const string PROGRAM_DATE = "May 23, 2019";
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
         public IDMConsoleOptions()
         {
             InputFilePath = string.Empty;

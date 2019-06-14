@@ -150,7 +150,7 @@ namespace InterDetect
                     throw new DirectoryNotFoundException(message);
                 return false;
             }
-            var fiDatabaseFile = new FileInfo(Path.Combine(diDataFolder.FullName, databaseFileName));
+            var fiDatabaseFile = new FileInfo(Path.Combine(databaseDirectory.FullName, databaseFileName));
             if (!fiDatabaseFile.Exists)
             {
                 var message = "SQLite database not found: " + fiDatabaseFile.FullName;
@@ -369,7 +369,7 @@ namespace InterDetect
             dctRawFiles = new Dictionary<string, string>();
             foreach (var row in sink.Rows)
             {
-                // Some dataset folders might have multiple .raw files (one starting with x_ and another the real one)
+                // Some dataset directories might have multiple .raw files (one starting with x_ and another the real one)
                 // Check for this
 
                 var datasetID = row[colIndexDatasetID];
@@ -382,7 +382,7 @@ namespace InterDetect
                     dctRawFiles.Remove(datasetID);
                 }
 
-                var rawFilePath = Path.Combine(row[colIndexFolderPath], row[colIndexDatasetName] + RAW_FILE_EXTENSION);
+                var rawFilePath = Path.Combine(row[colIndexDirectoryPath], row[colIndexDatasetName] + RAW_FILE_EXTENSION);
                 dctRawFiles.Add(datasetID, rawFilePath);
             }
 
@@ -398,13 +398,14 @@ namespace InterDetect
             return true;
         }
 
+
         /// <summary>
         /// Query table T_Results_Metadata_Typed in the SQLite database to determine the DeconTools _isos.csv files to use
         /// </summary>
         /// <param name="reader"></param>
         /// <param name="dctIsosFiles">Keys are dataset IDs; values are the path to the _isos.csv file</param>
         /// <returns>True if success, otherwise false</returns>
-        /// <remarks>Does not validate that each _isos.csv file exists; only that the results folder exists and is not empty</remarks>
+        /// <remarks>Does not validate that each _isos.csv file exists; only that the results directory exists and is not empty</remarks>
         private bool LookupDeconToolsInfo(SQLiteReader reader, out Dictionary<string, string> dctIsosFiles)
         {
             try
@@ -459,10 +460,10 @@ namespace InterDetect
             // Store the paths indexed by datasetID in isosPaths
             foreach (var row in sink.Rows)
             {
-                var tempIsosFolder = row[colIndexFolder];
-                if (Directory.Exists(tempIsosFolder))
+                var tempIsosDirectory = row[colIndexDirectoryPath];
+                if (Directory.Exists(tempIsosDirectory))
                 {
-                    var isosFileCandidate = Directory.GetFiles(tempIsosFolder);
+                    var isosFileCandidate = Directory.GetFiles(tempIsosDirectory);
                     if (isosFileCandidate.Length > 0)
                     {
                         var datasetID = row[colIndexDatasetID];
@@ -470,7 +471,7 @@ namespace InterDetect
                         if (dctIsosFiles.ContainsKey(datasetID))
                             continue;
 
-                        var isosFilePath = Path.Combine(row[colIndexFolder], row[colIndexDatasetName] + ISOS_FILE_EXTENSION);
+                        var isosFilePath = Path.Combine(row[colIndexDirectoryPath], row[colIndexDatasetName] + ISOS_FILE_EXTENSION);
                         dctIsosFiles.Add(datasetID, isosFilePath);
                     }
 

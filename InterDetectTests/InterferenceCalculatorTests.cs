@@ -188,23 +188,23 @@ namespace InterDetectTests
             "39025=0.8276|39050=0.96|39125=0.7461|39175=0.9026|39200=0.8072|39225=0.8402|39250=0.8496|39275=1|39300=0.7802|39325=0.812|39350=0.824|39400=0.8676|39425=0.978|39475=0.9172|39500=0.9794|39525=0.777|39575=0.9728|39625=1|39675=0.9776|39700=0.5995|39725=0.894|39775=0.6856|39850=0.8273|39875=0.8846|39900=1|39925=0.9748|39950=0.6835|39975=0.6819|40000=0.8458|")]
         [Category("PNL_Domain")]
         public void TestVOrbiData(
-            string storageFolderPath, string datasetName,
-            string deconToolsResultsFolderName,
+            string storageDirectoryPath, string datasetName,
+            string deconToolsResultsDirectoryName,
             int scanStart, int scanEnd,
             string expectedResultsByScan)
         {
-            var datasetFolder = new DirectoryInfo(Path.Combine(storageFolderPath, datasetName));
+            var datasetDirectory = new DirectoryInfo(Path.Combine(storageDirectoryPath, datasetName));
 
-            var datasetFile = new FileInfo(Path.Combine(datasetFolder.FullName, datasetName + ".raw"));
+            var datasetFile = new FileInfo(Path.Combine(datasetDirectory.FullName, datasetName + ".raw"));
 
-            if (!datasetFolder.Exists)
-                Assert.Fail("Dataset folder not found: " + datasetFolder.FullName);
+            if (!datasetDirectory.Exists)
+                Assert.Fail("Dataset directory not found: " + datasetDirectory.FullName);
 
             if (!datasetFile.Exists)
                 Assert.Fail(".Raw file not found: " + datasetFile.FullName);
 
             string isosFilePath;
-            if (string.IsNullOrEmpty(deconToolsResultsFolderName))
+            if (string.IsNullOrEmpty(deconToolsResultsDirectoryName))
             {
                 // Isos file does not exist
                 // Parent ions that do not have a charge state reported by the Thermo reader
@@ -213,7 +213,7 @@ namespace InterDetectTests
             }
             else
             {
-                var isosFile = new FileInfo(Path.Combine(datasetFolder.FullName, deconToolsResultsFolderName, datasetName + "_isos.csv"));
+                var isosFile = new FileInfo(Path.Combine(datasetDirectory.FullName, deconToolsResultsDirectoryName, datasetName + "_isos.csv"));
                 isosFilePath = isosFile.Exists ? isosFile.FullName : string.Empty;
             }
 

@@ -1,0 +1,3 @@
+"C:\Program Files\7-Zip\7z.exe" a IDM_Console.zip ..\IDM_Console\bin\Debug\IDM_Console.exe ..\IDM_Console\bin\Debug\Mage.dll ..\IDM_Console\bin\Debug\MyEMSLReader.dll ..\IDM_Console\bin\Debug\Pacifica.Core.dll ..\IDM_Console\bin\Debug\PRISM.dll ..\IDM_Console\bin\Debug\System.Data.SQLite.dll ..\IDM_Console\bin\Debug\ThermoFisher.CommonCore.BackgroundSubtraction.dll ..\IDM_Console\bin\Debug\ThermoFisher.CommonCore.Data.dll ..\IDM_Console\bin\Debug\ThermoFisher.CommonCore.MassPrecisionEstimator.dll ..\IDM_Console\bin\Debug\ThermoFisher.CommonCore.RawFileReader.dll ..\IDM_Console\bin\Debug\ThermoRawFileReader.dll ..\IDM_Console\bin\Debug\InterDetect.dll ..\README.md
+
+pause

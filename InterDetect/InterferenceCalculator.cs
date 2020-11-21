@@ -10,6 +10,8 @@ namespace InterDetect
     /// </summary>
     public class InterferenceCalculator : EventNotifier
     {
+        // Ignore Spelling: isowidth
+
         private const double C12_C13_MASS_DIFFERENCE = 1.0033548378;
         private const int NumIsotopesToCheckChargeGuess = 2;
         private const double DataBufferChargeGuess = C12_C13_MASS_DIFFERENCE * (NumIsotopesToCheckChargeGuess + 1);
@@ -46,8 +48,10 @@ namespace InterDetect
         /// </summary>
         /// <param name="precursorInfo">Precursor info: must set IsolationMass, ChargeState, IsolationWidth</param>
         /// <param name="spectraData2D">Array of centroided peak data of size [2,x], where [0,0] is first m/z and [1,0] is first intensity</param>
+        /// <remarks>
         /// If spectraData2D is empty, or if no peaks are found for in the region centered around the parent ion,
         /// sets the interference value to 1 since the instrument likely isolated a low intensity precursor ion
+        /// </remarks>
         public void Interference(PrecursorInfo precursorInfo, double[,] spectraData2D)
         {
             var mzToFindLow = precursorInfo.IsolationMass - (precursorInfo.IsolationWidth);
@@ -83,8 +87,10 @@ namespace InterDetect
         /// </summary>
         /// <param name="precursorInfo">Precursor info: must set IsolationMass, ChargeState, IsolationWidth</param>
         /// <param name="peakData">List of centroided peaks</param>
+        /// <comments>
         /// If peakData is empty, or if no peaks are found for in the region centered around the parent ion,
         /// sets the interference value to 1 since the instrument likely isolated a low intensity precursor ion
+        /// </comments>
         public void Interference(PrecursorInfo precursorInfo, List<Peak> peakData)
         {
 
@@ -166,7 +172,7 @@ namespace InterDetect
         /// </summary>
         /// <param name="isolationMass"></param>
         /// <param name="peaks">List of centroided peaks</param>
-        /// <returns></returns>
+        /// <returns>Estimated charge state</returns>
         public static int ChargeStateGuesstimator(double isolationMass, List<Peak> peaks)
         {
             // TODO: Is this sufficient, or should it be changed to a PPM Error tolerance?
@@ -367,13 +373,13 @@ namespace InterDetect
         }
 
         /// <summary>
-        /// Binary search for search the m/z dimension of the 2-dimensional array (.NET binary search doesn't support multi-dimensional arrays)
+        /// Binary search the m/z dimension of the 2-dimensional array (.NET binary search doesn't support multi-dimensional arrays)
         /// </summary>
         /// <param name="spectraData2D"></param>
         /// <param name="min"></param>
         /// <param name="max"></param>
         /// <param name="mzToFind"></param>
-        /// <returns></returns>
+        /// <returns>Index of the data point closest to m/z</returns>
         private int BinarySearch(ref double[,] spectraData2D, int min, int max, double mzToFind)
         {
             const double tol = 0.1;

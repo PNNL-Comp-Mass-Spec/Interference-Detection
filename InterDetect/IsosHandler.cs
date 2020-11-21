@@ -8,6 +8,8 @@ namespace InterDetect
 {
     public class IsosHandler : EventNotifier
     {
+        // Ignore Spelling: Isos
+
         Dictionary<int, List<IsosData>> mParentScans;
 
         /// <summary>
@@ -166,25 +168,24 @@ namespace InterDetect
         ///// <param name="filePath"></param>
         //public static void WriteDataTableToText(DataTable dt, string filePath)
         //{
-        //    using (var sw = new StreamWriter(filePath))
+        //    using (var writer = new StreamWriter(filePath))
         //    {
         //        string s = dt.Columns[0].ColumnName;
         //        for (int i = 1; i < dt.Columns.Count; i++)
         //        {
         //            s += "\t" + dt.Columns[i].ColumnName;
         //        }
-        //        sw.WriteLine(s);
+        //        writer.WriteLine(s);
 
-        //        foreach (DataRow row in dt.Rows)
+        //        for each (DataRow currentRow in dt.Rows)
         //        {
-        //            s = "" + row[0];
+        //            s = "" + currentRow[0];
         //            for (int i = 1; i < dt.Columns.Count; i++)
         //            {
-        //                s += "\t" + row[i];
+        //                s += "\t" + currentRow[i];
         //            }
-        //            sw.WriteLine(s);
+        //            writer.WriteLine(s);
         //        }
-
 
         //    }
         //}

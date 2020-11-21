@@ -49,6 +49,8 @@ namespace InterDetect
     /// </summary>
     public class InterferenceDetector : EventNotifier
     {
+        // Ignore Spelling: Isos, sqlite, prec, iso, pre
+
         public const string DEFAULT_RESULT_DATABASE_NAME = "Results.db3";
 
         public const string PRECURSOR_INFO_FILENAME = "prec_info_temp.txt";
@@ -248,7 +250,7 @@ namespace InterDetect
         }
 
         /// <summary>
-        ///
+        /// Compute precursor interference values
         /// </summary>
         /// <param name="fiDatabaseFile"></param>
         /// <param name="dctRawFiles">Keys are dataset IDs; values are the path to the .raw file</param>
@@ -461,7 +463,7 @@ namespace InterDetect
         /// <param name="reader">SQLite Reader</param>
         /// <param name="tableName">Table with analysis job info</param>
         /// <param name="dctIsosFiles">Keys are dataset IDs; values are the path to the _isos.csv file</param>
-        /// <returns></returns>
+        /// <returns>True if success, false if an error</returns>
         private bool LookupDeconToolsInfo(SQLiteReader reader, string tableName, out Dictionary<string, string> dctIsosFiles)
         {
             // Make a Mage sink module (simple row buffer)
@@ -538,7 +540,7 @@ namespace InterDetect
         /// </summary>
         /// <param name="fileCountCurrent">Rank order of the current dataset being processed</param>
         /// <param name="fileCountTotal">Total number of dataset files to process</param>
-        /// <param name="rawFilePath">Path to the the .Raw file</param>
+        /// <param name="rawFilePath">Path to the .Raw file</param>
         /// <param name="isosFilePath">Path to the _isos.csv file</param>
         /// <param name="scanStart">Start scan; 0 to start at scan 1</param>
         /// <param name="scanEnd">End scan; 0 to process from scanStart to the end</param>
@@ -771,7 +773,7 @@ namespace InterDetect
         /// This data will be loaded into SQLite later
         /// </summary>
         /// <param name="lstPrecursorInfo"></param>
-        /// <param name="datasetID">Id number is a string because that's what sql gives me and there
+        /// <param name="datasetID">Id number is a string because that's what SQL gives me and there
         /// is no point in switching it back and forth</param>
         /// <param name="filepath"></param>
         public void ExportInterferenceScores(IEnumerable<PrecursorIntense> lstPrecursorInfo, string datasetID, string filepath)

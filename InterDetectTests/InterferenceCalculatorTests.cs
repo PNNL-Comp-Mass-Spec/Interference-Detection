@@ -10,6 +10,8 @@ namespace InterDetectTests
     [TestFixture]
     public class InterferenceCalculatorTests
     {
+        // Ignore Spelling: Samwise, Interdetect, Isos
+
         private int mFileCountCurrent;
 
         [OneTimeSetUp]

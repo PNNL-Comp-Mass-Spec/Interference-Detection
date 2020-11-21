@@ -9,6 +9,8 @@ namespace IDM_Console
 {
     class Program
     {
+        // Ignore Spelling: Tol
+
         static int Main(string[] args)
         {
             var sourceFilePath = "??";

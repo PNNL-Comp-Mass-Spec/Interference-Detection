@@ -137,10 +137,10 @@ namespace InterDetect
         public bool Run(string databaseDirectoryPath, string databaseFileName)
         {
             // Keys are dataset IDs; values are the path to the .raw file
-            Dictionary<string, string> dctRawFiles;
+            Dictionary<string, string> rawFiles;
 
             // Keys are dataset IDs; values are the path to the _isos.csv file
-            Dictionary<string, string> dctIsosFiles;
+            Dictionary<string, string> isosFiles;
             bool success;
 
             var databaseDirectory = new DirectoryInfo(databaseDirectoryPath);
@@ -152,10 +152,10 @@ namespace InterDetect
                     throw new DirectoryNotFoundException(message);
                 return false;
             }
-            var fiDatabaseFile = new FileInfo(Path.Combine(databaseDirectory.FullName, databaseFileName));
-            if (!fiDatabaseFile.Exists)
+            var databaseFile = new FileInfo(Path.Combine(databaseDirectory.FullName, databaseFileName));
+            if (!databaseFile.Exists)
             {
-                var message = "SQLite database not found: " + fiDatabaseFile.FullName;
+                var message = "SQLite database not found: " + databaseFile.FullName;
                 OnErrorEvent(message);
                 if (ThrowEvents)
                     throw new FileNotFoundException(message);
@@ -169,12 +169,12 @@ namespace InterDetect
             // and configure it to read the table
             var reader = new SQLiteReader
             {
-                Database = fiDatabaseFile.FullName
+                Database = databaseFile.FullName
             };
 
             try
             {
-                success = LookupMSMSFiles(reader, out dctRawFiles);
+                success = LookupMSMSFiles(reader, out rawFiles);
                 if (!success)
                     return false;
             }
@@ -189,7 +189,7 @@ namespace InterDetect
 
             try
             {
-                success = LookupDeconToolsInfo(reader, out dctIsosFiles);
+                success = LookupDeconToolsInfo(reader, out isosFiles);
                 if (!success)
                 {
                     // DeconIsos file not found; this is not a critical error
@@ -206,7 +206,7 @@ namespace InterDetect
 
             try
             {
-                PerformWork(fiDatabaseFile, dctRawFiles, dctIsosFiles);
+                PerformWork(databaseFile, rawFiles, isosFiles);
             }
             catch (Exception ex)
             {
@@ -226,24 +226,24 @@ namespace InterDetect
             var tempPrecursorInfoFile = outputFilePath;
 
             OnStatusEvent("Processing file: " + Path.GetFileName(rawFilePath));
-            List<PrecursorIntense> lstPrecursorInfo = null;
+            List<PrecursorIntense> precursorInfo = null;
             try
             {
-                lstPrecursorInfo = ParentInfoPass(1, 1, rawFilePath, isosFilePath);
+                precursorInfo = ParentInfoPass(1, 1, rawFilePath, isosFilePath);
             }
             catch (Exception ex)
             {
                 OnErrorEvent("Error in GUI_PerformWork: " + ex.Message, ex);
             }
 
-            if (lstPrecursorInfo == null)
+            if (precursorInfo == null)
             {
                 DeleteFile(tempPrecursorInfoFile);
                 OnErrorEvent("Error in PerformWork: ParentInfoPass returned null loading " + rawFilePath);
                 return false;
             }
 
-            ExportInterferenceScores(lstPrecursorInfo, "000000", tempPrecursorInfoFile);
+            ExportInterferenceScores(precursorInfo, "000000", tempPrecursorInfoFile);
 
             OnStatusEvent("Process Complete");
             return true;
@@ -252,11 +252,11 @@ namespace InterDetect
         /// <summary>
         /// Compute precursor interference values
         /// </summary>
-        /// <param name="fiDatabaseFile"></param>
-        /// <param name="dctRawFiles">Keys are dataset IDs; values are the path to the .raw file</param>
-        /// <param name="dctIsosFiles">Keys are dataset IDs; values are the path to the _isos.csv file</param>
-        /// <remarks>dctIsosFiles can be null or empty since Isos files are not required</remarks>
-        private void PerformWork(FileInfo fiDatabaseFile, IReadOnlyDictionary<string, string> dctRawFiles, IReadOnlyDictionary<string, string> dctIsosFiles)
+        /// <param name="databaseFile"></param>
+        /// <param name="rawFiles">Keys are dataset IDs; values are the path to the .raw file</param>
+        /// <param name="isosFiles">Keys are dataset IDs; values are the path to the _isos.csv file</param>
+        /// <remarks>isosFiles can be null or empty since Isos files are not required</remarks>
+        private void PerformWork(FileInfo databaseFile, IReadOnlyDictionary<string, string> rawFiles, IReadOnlyDictionary<string, string> isosFiles)
         {
             var fileCountCurrent = 0;
 
@@ -264,34 +264,34 @@ namespace InterDetect
 
             string tempPrecursorInfoFile;
 
-            if (fiDatabaseFile.DirectoryName == null)
+            if (databaseFile.DirectoryName == null)
                 tempPrecursorInfoFile = PRECURSOR_INFO_FILENAME;
             else
-                tempPrecursorInfoFile = Path.Combine(fiDatabaseFile.DirectoryName, "prec_info_temp.txt");
+                tempPrecursorInfoFile = Path.Combine(databaseFile.DirectoryName, "prec_info_temp.txt");
 
             DeleteFile(tempPrecursorInfoFile);
 
-            foreach (var datasetID in dctRawFiles.Keys)
+            foreach (var datasetID in rawFiles.Keys)
             {
-                if (dctIsosFiles == null || !dctIsosFiles.TryGetValue(datasetID, out var isosFilePath))
+                if (isosFiles == null || !isosFiles.TryGetValue(datasetID, out var isosFilePath))
                     isosFilePath = string.Empty;
 
                 fileCountCurrent++;
 
                 Console.WriteLine();
-                OnStatusEvent("Processing file " + fileCountCurrent + " / " + dctRawFiles.Count + ": " + Path.GetFileName(dctRawFiles[datasetID]));
+                OnStatusEvent("Processing file " + fileCountCurrent + " / " + rawFiles.Count + ": " + Path.GetFileName(rawFiles[datasetID]));
 
-                var lstPrecursorInfo = ParentInfoPass(fileCountCurrent, dctRawFiles.Count, dctRawFiles[datasetID], isosFilePath);
-                if (lstPrecursorInfo == null)
+                var precursorInfo = ParentInfoPass(fileCountCurrent, rawFiles.Count, rawFiles[datasetID], isosFilePath);
+                if (precursorInfo == null)
                 {
-                    var message = "Error in PerformWork: ParentInfoPass returned null loading " + dctRawFiles[datasetID];
+                    var message = "Error in PerformWork: ParentInfoPass returned null loading " + rawFiles[datasetID];
                     OnErrorEvent(message);
                     if (ThrowEvents)
                         throw new Exception(message);
                     return;
                 }
 
-                ExportInterferenceScores(lstPrecursorInfo, datasetID, tempPrecursorInfoFile);
+                ExportInterferenceScores(precursorInfo, datasetID, tempPrecursorInfoFile);
 
                 if (ShowProgressAtConsole)
                     OnStatusEvent("Iteration Complete");
@@ -307,7 +307,7 @@ namespace InterDetect
 
                 var writer = new SQLiteWriter();
                 const string tableName = "t_precursor_interference";
-                writer.DbPath = fiDatabaseFile.FullName;
+                writer.DbPath = databaseFile.FullName;
                 writer.TableName = tableName;
 
                 ProcessingPipeline.Assemble("ImportToSQLite", reader, writer).RunRoot(null);
@@ -361,10 +361,10 @@ namespace InterDetect
         /// Query table t_msms_raw_files in the SQLite database to determine the Thermo .raw files to process
         /// </summary>
         /// <param name="reader"></param>
-        /// <param name="dctRawFiles">Keys are dataset IDs; values are the path to the .raw file</param>
+        /// <param name="rawFiles">Keys are dataset IDs; values are the path to the .raw file</param>
         /// <returns>True if success, otherwise false</returns>
         /// <remarks>Does not validate that each .raw file exists</remarks>
-        private bool LookupMSMSFiles(SQLiteReader reader, out Dictionary<string, string> dctRawFiles)
+        private bool LookupMSMSFiles(SQLiteReader reader, out Dictionary<string, string> rawFiles)
         {
             reader.SQLText = "SELECT * FROM t_msms_raw_files;";
 
@@ -374,7 +374,7 @@ namespace InterDetect
             // Construct and run a Mage pipeline to obtain data from t_msms_raw_files
             ProcessingPipeline.Assemble("Test_Pipeline", reader, sink).RunRoot(null);
 
-            dctRawFiles = new Dictionary<string, string>();
+            rawFiles = new Dictionary<string, string>();
 
             var colIndexDirectoryPath = GetDirectoryColumnIndex(sink);
             if (colIndexDirectoryPath < 0)
@@ -396,19 +396,19 @@ namespace InterDetect
 
                 var datasetID = row[colIndexDatasetID];
 
-                if (dctRawFiles.TryGetValue(datasetID, out var existingRawValue))
+                if (rawFiles.TryGetValue(datasetID, out var existingRawValue))
                 {
                     if (!existingRawValue.StartsWith("x_", StringComparison.OrdinalIgnoreCase))
                         continue;
 
-                    dctRawFiles.Remove(datasetID);
+                    rawFiles.Remove(datasetID);
                 }
 
                 var rawFilePath = Path.Combine(row[colIndexDirectoryPath], row[colIndexDatasetName] + RAW_FILE_EXTENSION);
-                dctRawFiles.Add(datasetID, rawFilePath);
+                rawFiles.Add(datasetID, rawFilePath);
             }
 
-            if (dctRawFiles.Count == 0)
+            if (rawFiles.Count == 0)
             {
                 var message = "Error in LookupMSMSFiles; no results found using " + reader.SQLText;
                 OnErrorEvent(message);
@@ -424,14 +424,14 @@ namespace InterDetect
         /// Query table T_Results_Metadata_Typed in the SQLite database to determine the DeconTools _isos.csv files to use
         /// </summary>
         /// <param name="reader"></param>
-        /// <param name="dctIsosFiles">Keys are dataset IDs; values are the path to the _isos.csv file</param>
+        /// <param name="isosFiles">Keys are dataset IDs; values are the path to the _isos.csv file</param>
         /// <returns>True if success, otherwise false</returns>
         /// <remarks>Does not validate that each _isos.csv file exists; only that the results directory exists and is not empty</remarks>
-        private bool LookupDeconToolsInfo(SQLiteReader reader, out Dictionary<string, string> dctIsosFiles)
+        private bool LookupDeconToolsInfo(SQLiteReader reader, out Dictionary<string, string> isosFiles)
         {
             try
             {
-                var success = LookupDeconToolsInfo(reader, "T_Results_Metadata_Typed", out dctIsosFiles);
+                var success = LookupDeconToolsInfo(reader, "T_Results_Metadata_Typed", out isosFiles);
                 if (success)
                     return true;
             }
@@ -442,7 +442,7 @@ namespace InterDetect
 
             try
             {
-                var success = LookupDeconToolsInfo(reader, "t_results_metadata", out dctIsosFiles);
+                var success = LookupDeconToolsInfo(reader, "t_results_metadata", out isosFiles);
                 if (success)
                     return true;
             }
@@ -460,9 +460,9 @@ namespace InterDetect
         /// </summary>
         /// <param name="reader">SQLite Reader</param>
         /// <param name="tableName">Table with analysis job info</param>
-        /// <param name="dctIsosFiles">Keys are dataset IDs; values are the path to the _isos.csv file</param>
+        /// <param name="isosFiles">Keys are dataset IDs; values are the path to the _isos.csv file</param>
         /// <returns>True if success, false if an error</returns>
-        private bool LookupDeconToolsInfo(SQLiteReader reader, string tableName, out Dictionary<string, string> dctIsosFiles)
+        private bool LookupDeconToolsInfo(SQLiteReader reader, string tableName, out Dictionary<string, string> isosFiles)
         {
             // Make a Mage sink module (simple row buffer)
             var sink = new SimpleSink();
@@ -473,7 +473,7 @@ namespace InterDetect
             // Construct and run the Mage pipeline
             ProcessingPipeline.Assemble("Test_Pipeline2", reader, sink).RunRoot(null);
 
-            dctIsosFiles = new Dictionary<string, string>();
+            isosFiles = new Dictionary<string, string>();
 
             var colIndexDatasetID = sink.ColumnIndex["Dataset_ID"];
             var colIndexDatasetName = sink.ColumnIndex["Dataset"];
@@ -500,11 +500,11 @@ namespace InterDetect
                     {
                         var datasetID = row[colIndexDatasetID];
 
-                        if (dctIsosFiles.ContainsKey(datasetID))
+                        if (isosFiles.ContainsKey(datasetID))
                             continue;
 
                         var isosFilePath = Path.Combine(row[colIndexDirectoryPath], row[colIndexDatasetName] + ISOS_FILE_EXTENSION);
-                        dctIsosFiles.Add(datasetID, isosFilePath);
+                        isosFiles.Add(datasetID, isosFilePath);
                     }
                 }
             }
@@ -620,7 +620,7 @@ namespace InterDetect
                 }
             }
 
-            var lstPrecursorInfo = new List<PrecursorIntense>();
+            var precursorInfo = new List<PrecursorIntense>();
             var numSpectra = rawFileReader.GetNumScans();
 
             var currentPrecursorScan = 0;
@@ -726,7 +726,7 @@ namespace InterDetect
                 // chargeState might still be 0; that's OK
                 // InterferenceCalculator.Interference will try to determine it
 
-                var precursorInfo = new PrecursorIntense(mz, isolationWidth, chargeState)
+                var currentPrecursor = new PrecursorIntense(mz, isolationWidth, chargeState)
                 {
                     ScanNumber = scanNumber,
                     PrecursorScanNumber = currentPrecursorScan
@@ -734,11 +734,11 @@ namespace InterDetect
 
                 if (!string.IsNullOrEmpty(agcTimeText) && double.TryParse(agcTimeText, out var ionCollectionTime))
                 {
-                    precursorInfo.IonCollectionTime = ionCollectionTime;
+                    currentPrecursor.IonCollectionTime = ionCollectionTime;
                 }
 
-                ComputeInterference(interferenceCalc, precursorInfo, rawFileReader);
-                lstPrecursorInfo.Add(precursorInfo);
+                ComputeInterference(interferenceCalc, currentPrecursor, rawFileReader);
+                precursorInfo.Add(currentPrecursor);
             }
             rawFileReader.CloseRawFile();
 
@@ -746,8 +746,8 @@ namespace InterDetect
             {
                 OnWarningEvent(string.Format(
                     "Charge could not be determined for {0:F1}% of the precursors ({1} / {2})",
-                    interferenceCalc.UnknownChargeCount / (double)lstPrecursorInfo.Count * 100,
-                    interferenceCalc.UnknownChargeCount, lstPrecursorInfo.Count));
+                    interferenceCalc.UnknownChargeCount / (double)precursorInfo.Count * 100,
+                    interferenceCalc.UnknownChargeCount, precursorInfo.Count));
             }
 
             if (deleteLocalFile)
@@ -759,18 +759,18 @@ namespace InterDetect
             // Delete the locally cached isos file (if it exists)
             DeleteFile(isosFilePathLocal);
 
-            return lstPrecursorInfo;
+            return precursorInfo;
         }
 
         /// <summary>
         /// Write out the interference scores to a temporary file
         /// This data will be loaded into SQLite later
         /// </summary>
-        /// <param name="lstPrecursorInfo"></param>
+        /// <param name="precursorInfo"></param>
         /// <param name="datasetID">Id number is a string because that's what SQL gives me and there
         /// is no point in switching it back and forth</param>
         /// <param name="filepath"></param>
-        public void ExportInterferenceScores(IEnumerable<PrecursorIntense> lstPrecursorInfo, string datasetID, string filepath)
+        public void ExportInterferenceScores(IEnumerable<PrecursorIntense> precursorInfo, string datasetID, string filepath)
         {
             var fileExists = File.Exists(filepath);
             using (var writer = new StreamWriter(filepath, fileExists))
@@ -784,7 +784,7 @@ namespace InterDetect
                                      "PreIntensity\tIonCollectionTime");
                 }
 
-                foreach (var info in lstPrecursorInfo)
+                foreach (var info in precursorInfo)
                 {
                     writer.WriteLine(datasetID + "\t" +
                                      info.ScanNumber + "\t" +

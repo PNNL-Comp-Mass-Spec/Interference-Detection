@@ -227,9 +227,9 @@ namespace InterDetectTests
             var idm = new InterferenceDetector { ShowProgressAtConsole = false };
             RegisterEvents(idm);
 
-            var lstPrecursorInfo = idm.ParentInfoPass(mFileCountCurrent, 2, datasetFile.FullName, isosFilePath, scanStart, scanEnd);
+            var precursorInfo = idm.ParentInfoPass(mFileCountCurrent, 2, datasetFile.FullName, isosFilePath, scanStart, scanEnd);
 
-            if (lstPrecursorInfo == null)
+            if (precursorInfo == null)
             {
                 Assert.Fail(datasetFile.FullName + " failed to load");
             }
@@ -247,7 +247,7 @@ namespace InterDetectTests
                 }
             }
 
-            idm.ExportInterferenceScores(lstPrecursorInfo, "Dataset" + mFileCountCurrent, resultsFile.FullName);
+            idm.ExportInterferenceScores(precursorInfo, "Dataset" + mFileCountCurrent, resultsFile.FullName);
 
             Console.WriteLine("Results written to " + resultsFile.FullName);
 
@@ -276,7 +276,7 @@ namespace InterDetectTests
             var matchCount = 0;
             var comparisonCount = 0;
 
-            foreach (var result in lstPrecursorInfo)
+            foreach (var result in precursorInfo)
             {
                 if (!expectedResults.TryGetValue(result.ScanNumber, out var expectedScore))
                 {

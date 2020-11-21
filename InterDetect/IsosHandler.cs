@@ -8,7 +8,7 @@ namespace InterDetect
 {
     public class IsosHandler : EventNotifier
     {
-        // Ignore Spelling: Isos
+        // Ignore Spelling: Isos, dt
 
         private Dictionary<int, List<IsosData>> mParentScans;
 
@@ -26,9 +26,9 @@ namespace InterDetect
         public IsosHandler(string filepath, bool throwEvents = true)
         {
             ThrowEvents = throwEvents;
-            var lstIsosData = TextFileToData(filepath);
+            var isosData = TextFileToData(filepath);
 
-            GetParentScanNumbers(lstIsosData);
+            GetParentScanNumbers(isosData);
         }
 
         /// <summary>
@@ -142,10 +142,10 @@ namespace InterDetect
         /// <summary>
         /// Generates a list of parent scan numbers
         /// </summary>
-        private void GetParentScanNumbers(IEnumerable<IsosData> lstIsosData)
+        private void GetParentScanNumbers(IEnumerable<IsosData> isosData)
         {
             mParentScans = new Dictionary<int, List<IsosData>>();
-            foreach (var isosEntry in lstIsosData)
+            foreach (var isosEntry in isosData)
             {
                 if (!mParentScans.ContainsKey(isosEntry.ScanNum))
                 {
@@ -199,7 +199,7 @@ namespace InterDetect
             {
                 var splitChars = new[] { '\t', ',' };
 
-                var lstIsosData = new List<IsosData>();
+                var isosData = new List<IsosData>();
 
                 using (var reader = new StreamReader(new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)))
                 {
@@ -209,7 +209,7 @@ namespace InterDetect
                         OnErrorEvent(message);
                         if (ThrowEvents)
                             throw new Exception(message);
-                        return lstIsosData;
+                        return isosData;
                     }
 
                     var abundanceColIndex = -1;
@@ -226,7 +226,7 @@ namespace InterDetect
                         OnErrorEvent(message);
                         if (ThrowEvents)
                             throw new Exception(message);
-                        return lstIsosData;
+                        return isosData;
                     }
 
                     var headerCols = headerLine.Split(splitChars);
@@ -262,7 +262,7 @@ namespace InterDetect
                         OnErrorEvent(columnError);
                         if (ThrowEvents)
                             throw new Exception(columnError);
-                        return lstIsosData;
+                        return isosData;
                     }
 
                     // fill the rest of the table
@@ -281,10 +281,10 @@ namespace InterDetect
 
                         var isosEntry = new IsosData(scan, mz, abundance, charge);
 
-                        lstIsosData.Add(isosEntry);
+                        isosData.Add(isosEntry);
                     }
                 }
-                return lstIsosData;
+                return isosData;
             }
             catch (Exception ex)
             {

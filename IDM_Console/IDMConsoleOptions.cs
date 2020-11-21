@@ -5,7 +5,7 @@ using PRISM;
 
 namespace IDM_Console
 {
-    class IDMConsoleOptions
+    internal class IDMConsoleOptions
     {
         // Ignore Spelling: Tol
 
@@ -57,7 +57,6 @@ namespace IDM_Console
 
             if (!DeleteTempScoresFile)
                 Console.WriteLine(" Will not delete file {0}", InterferenceDetector.PRECURSOR_INFO_FILENAME);
-
         }
 
         public bool ValidateArgs()
@@ -70,6 +69,5 @@ namespace IDM_Console
 
             return true;
         }
-
     }
 }

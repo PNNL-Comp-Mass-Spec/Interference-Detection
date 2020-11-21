@@ -7,11 +7,11 @@ using PRISM;
 
 namespace IDM_Console
 {
-    class Program
+    public class Program
     {
         // Ignore Spelling: Tol
 
-        static int Main(string[] args)
+        private static int Main(string[] args)
         {
             var sourceFilePath = "??";
 
@@ -92,7 +92,6 @@ namespace IDM_Console
                 ConsoleMsgUtils.ShowErrorCustom("Failed", null, false);
                 Thread.Sleep(2000);
                 return -1;
-
             }
             catch (Exception ex)
             {
@@ -100,7 +99,6 @@ namespace IDM_Console
                 Thread.Sleep(2000);
                 return -1;
             }
-
         }
 
         private static void RegisterEvents(InterferenceDetector idm)

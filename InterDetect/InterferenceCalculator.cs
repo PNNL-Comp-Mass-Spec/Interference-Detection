@@ -65,7 +65,7 @@ namespace InterDetect
             }
 
             // Limit the number of peaks we convert to Peak objects to peaks that are within reasonable range of the isolation mass
-            var min = 0;
+            const int min = 0;
             var max = spectraData2D.GetUpperBound(1) + 1;
 
             // Binary search for the low index
@@ -93,7 +93,6 @@ namespace InterDetect
         /// </comments>
         public void Interference(PrecursorInfo precursorInfo, List<Peak> peakData)
         {
-
             if (precursorInfo.ChargeState <= 0)
             {
                 var newChargeState = ChargeStateGuesstimator(precursorInfo.IsolationMass, peakData);
@@ -126,7 +125,7 @@ namespace InterDetect
             InterferenceCalculation(precursorInfo, peaks);
         }
 
-        private struct MassChargeData
+        private readonly struct MassChargeData
         {
             /// <summary>
             /// m/z
@@ -272,7 +271,6 @@ namespace InterDetect
         /// </remarks>
         private void InterferenceCalculation(PrecursorInfo precursorInfo, IReadOnlyList<Peak> peaks)
         {
-
             double intensitySumPrecursorIons = 0;
 
             double intensitySumAllPeaks = 0;
@@ -288,7 +286,6 @@ namespace InterDetect
 
             if (peaks.Count > 0)
             {
-
                 for (var j = 0; j < peaks.Count; j++)
                 {
                     // Option 1 for determining if the observed peak is close to an expected m/z value
@@ -365,7 +362,6 @@ namespace InterDetect
                         Mz = spectraData2D[0, i],
                         Abundance = spectraData2D[1, i]
                     });
-
                 }
             }
 
@@ -385,14 +381,8 @@ namespace InterDetect
             const double tol = 0.1;
             var mid = 0;
 
-            while (true)
+            while (Math.Abs(spectraData2D[0, mid] - mzToFind) >= tol && mid != (max + min) / 2)
             {
-                // Exit condition
-                if (Math.Abs(spectraData2D[0, mid] - mzToFind) < tol || mid == (max + min) / 2)
-                {
-                    break;
-                }
-
                 // set midpoint
                 mid = (max + min) / 2;
 

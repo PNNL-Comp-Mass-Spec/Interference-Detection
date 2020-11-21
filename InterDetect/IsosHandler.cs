@@ -10,7 +10,7 @@ namespace InterDetect
     {
         // Ignore Spelling: Isos
 
-        Dictionary<int, List<IsosData>> mParentScans;
+        private Dictionary<int, List<IsosData>> mParentScans;
 
         /// <summary>
         /// When true, events are thrown up the calling tree for the parent class to handle them
@@ -61,13 +61,12 @@ namespace InterDetect
                                    parent.Mz < mz + 0.005
                              select parent).ToList();
 
-
             if (isosMatch.Count > 0)
             {
                 charge = isosMatch.First().Charge;
             }
 
-            return (charge != 0);
+            return charge != 0;
         }
 
         // Unused function
@@ -186,7 +185,6 @@ namespace InterDetect
         //            }
         //            writer.WriteLine(s);
         //        }
-
         //    }
         //}
 

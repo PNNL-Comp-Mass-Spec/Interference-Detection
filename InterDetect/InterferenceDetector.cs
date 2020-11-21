@@ -328,7 +328,6 @@ namespace InterDetect
 
             // Delete the text file that was imported into SQLite
             DeleteFile(tempPrecursorInfoFile);
-
         }
 
         private void DeleteFile(string filePath)
@@ -380,7 +379,7 @@ namespace InterDetect
             var colIndexDirectoryPath = GetDirectoryColumnIndex(sink);
             if (colIndexDirectoryPath < 0)
             {
-                var message = "Error in LookupMSMSFiles; table t_msms_raw_files does not have column Directory or Folder";
+                const string message = "Error in LookupMSMSFiles; table t_msms_raw_files does not have column Directory or Folder";
                 OnErrorEvent(message);
                 if (ThrowEvents)
                     throw new Exception(message);
@@ -399,7 +398,7 @@ namespace InterDetect
 
                 if (dctRawFiles.TryGetValue(datasetID, out var existingRawValue))
                 {
-                    if (!existingRawValue.ToLower().StartsWith("x_"))
+                    if (!existingRawValue.StartsWith("x_", StringComparison.OrdinalIgnoreCase))
                         continue;
 
                     dctRawFiles.Remove(datasetID);
@@ -420,7 +419,6 @@ namespace InterDetect
 
             return true;
         }
-
 
         /// <summary>
         /// Query table T_Results_Metadata_Typed in the SQLite database to determine the DeconTools _isos.csv files to use
@@ -508,7 +506,6 @@ namespace InterDetect
                         var isosFilePath = Path.Combine(row[colIndexDirectoryPath], row[colIndexDatasetName] + ISOS_FILE_EXTENSION);
                         dctIsosFiles.Add(datasetID, isosFilePath);
                     }
-
                 }
             }
 
@@ -609,7 +606,6 @@ namespace InterDetect
                 }
                 else
                 {
-
                     isosFilePathLocal = Path.Combine(WorkDir, remoteIsosFile.Name);
                     var localIsosFile = new FileInfo(isosFilePathLocal);
 
@@ -622,7 +618,6 @@ namespace InterDetect
                     isosReader = new IsosHandler(isosFilePathLocal, ThrowEvents);
                     RegisterEvents(isosReader);
                 }
-
             }
 
             var lstPrecursorInfo = new List<PrecursorIntense>();
@@ -829,7 +824,6 @@ namespace InterDetect
 
         private void ComputeInterference(InterferenceCalculator interferenceCalc, PrecursorIntense precursorInfo, XRawFileIO raw)
         {
-
             if (mSpectraData2D == null || mCachedPrecursorScan != precursorInfo.PrecursorScanNumber)
             {
                 // Retrieve centroided data as a 2D array of m/z and intensity
@@ -840,6 +834,5 @@ namespace InterDetect
 
             interferenceCalc.Interference(precursorInfo, mSpectraData2D);
         }
-
     }
 }

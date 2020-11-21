@@ -134,7 +134,8 @@ namespace InterDetectTests
             }
         }
 
-        [Test] [TestCase(641.68, 2, 3, 0.9498275,
+        [Test]
+        [TestCase(641.68, 2, 3, 0.9498275,
             "639.7077,167199|640.0714,169516|640.3343,156139|640.3762,123602|640.6768,194863|640.7348,103064|640.8257,133304|641.0148,2440679|641.3479,2129230|641.6791,883178|641.8780,86945|642.0114,459777|642.3540,207854|642.8660,169017|643.3537,222952|643.6028,221999|")]
         [TestCase(583.66, 2, 3, 0.360472,
             "581.6601,172507|581.8665,452705|581.9954,151606|582.3293,4048004|582.6630,3479459|582.9980,2128995|583.3313,1151475|583.6556,1625434|583.8265,102997|583.9895,1482809|584.0642,65116|584.3242,796772|584.6605,456975|584.7721,153606|584.8549,100397|584.9973,1992716|585.2829,71041|585.3314,1901800|585.5741,65218|585.6661,770890|")]
@@ -161,9 +162,11 @@ namespace InterDetectTests
 
                 if (double.TryParse(intensityText, out var intensity))
                 {
-                    var newPeak = new Peak {
+                    var newPeak = new Peak
+                    {
                         Mz = mz,
-                        Abundance = intensity};
+                        Abundance = intensity
+                    };
 
                     peakList.Add(newPeak);
                 }
@@ -233,6 +236,7 @@ namespace InterDetectTests
 
             var resultsFile = new FileInfo("IDMResults_" + datasetName + ".txt");
             if (resultsFile.Exists)
+            {
                 try
                 {
                     resultsFile.Delete();
@@ -241,11 +245,11 @@ namespace InterDetectTests
                 {
                     Console.WriteLine("Warning, could not delete results file before writing new results: " + ex.Message);
                 }
+            }
 
             idm.ExportInterferenceScores(lstPrecursorInfo, "Dataset" + mFileCountCurrent, resultsFile.FullName);
 
             Console.WriteLine("Results written to " + resultsFile.FullName);
-
 
             // Extract the data from expectedResultsByScan
             var expectedResultsToParse = expectedResultsByScan.Split('|');
@@ -258,7 +262,7 @@ namespace InterDetectTests
                     continue;
 
                 var scanNumberText = expectedResult.Substring(0, charIndex);
-                var scoreText = expectedResult.Substring(charIndex+1);
+                var scoreText = expectedResult.Substring(charIndex + 1);
 
                 if (!int.TryParse(scanNumberText, out var scanNumber))
                     continue;
@@ -279,7 +283,7 @@ namespace InterDetectTests
                     continue;
                 }
 
-                comparisonCount += 1;
+                comparisonCount++;
 
                 if (Math.Abs(expectedScore - result.Interference) > 0.01)
                 {
@@ -287,7 +291,7 @@ namespace InterDetectTests
                 }
                 else
                 {
-                    matchCount += 1;
+                    matchCount++;
                 }
             }
 
@@ -299,7 +303,6 @@ namespace InterDetectTests
             {
                 Assert.Fail("{0} / {1} precursors had unexpected interference scores", comparisonCount - matchCount, comparisonCount);
             }
-
         }
 
         protected void RegisterEvents(EventNotifier oProcessingClass)

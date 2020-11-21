@@ -653,8 +653,7 @@ namespace InterDetect
                     progressThreshold += .05;
                 }
 
-
-                rawFileReader.GetScanInfo(scanNumber, out clsScanInfo scanInfo);
+                rawFileReader.GetScanInfo(scanNumber, out var scanInfo);
 
                 var msOrder = scanInfo.MSLevel;
 

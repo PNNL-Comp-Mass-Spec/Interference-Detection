@@ -61,6 +61,7 @@ namespace IDM_Console
                 }
 
                 options.OutputSetOptions();
+                sourceFilePath = options.InputFilePath;
 
                 var sourceFile = new FileInfo(options.InputFilePath);
                 if (!sourceFile.Exists)

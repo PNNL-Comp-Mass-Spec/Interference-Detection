@@ -55,6 +55,9 @@
     <PackageReference Include="System.Data.SQLite.Core">
       <Version>1.0.111</Version>
     </PackageReference>
+    <PackageReference Include="ThermoRawFileReader">
+      <Version>4.1.36</Version>
+    </PackageReference>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\InterDetect\InterDetect.csproj">

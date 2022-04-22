@@ -54,10 +54,6 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="ThermoRawFileReader">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\InterDetect\DLLLibrary\ThermoRawFileReader.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="IDMConsoleOptions.cs" />
@@ -78,6 +74,9 @@
       <Version>2.6.28</Version>
     </PackageReference>
     <PackageReference Include="System.Data.SQLite.Core" Version="1.0.111" />
+    <PackageReference Include="ThermoRawFileReader">
+      <Version>4.1.36</Version>
+    </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

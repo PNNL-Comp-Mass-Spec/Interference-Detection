@@ -103,23 +103,23 @@ namespace InterDetectTests
 
             var data = new List<PrecursorInfo>
             {
-                new PrecursorInfo(428.9168, 2.0, 3) {ActualMass = 428.5828},
-                new PrecursorInfo(436.5596, 2.0, 3) {ActualMass = 436.5596},
-                new PrecursorInfo(443.7350, 2.0, 2) {ActualMass = 443.7351},
-                new PrecursorInfo(450.8925, 2.0, 3) {ActualMass = 450.8925},
-                new PrecursorInfo(454.7563, 2.0, 2) {ActualMass = 454.7563},
-                new PrecursorInfo(457.2725, 2.0, 4) {ActualMass = 457.2725},
-                new PrecursorInfo(474.7589, 2.0, 2) {ActualMass = 474.7588},
-                new PrecursorInfo(534.3016, 2.0, 3) {ActualMass = 534.3016},
-                new PrecursorInfo(642.3702, 2.0, 2) {ActualMass = 642.3702},
-                new PrecursorInfo(720.3926, 2.0, 1) {ActualMass = 720.3926},
-                new PrecursorInfo(800.9453, 2.0, 2) {ActualMass = 800.9453},
-                new PrecursorInfo(857.4833, 2.0, 1) {ActualMass = 857.4835},
-                new PrecursorInfo(880.3828, 2.0, 1) {ActualMass = 880.3826},
-                new PrecursorInfo(989.4995, 2.0, 1) {ActualMass = 989.4995},
-                new PrecursorInfo(1108.5516, 2.0, 1) {ActualMass = 1108.5516},
-                new PrecursorInfo(447.7539, 2.0, -1),
-                new PrecursorInfo(449.2640, 2.0, -1)
+                new(428.9168, 2.0, 3) {ActualMass = 428.5828},
+                new(436.5596, 2.0, 3) {ActualMass = 436.5596},
+                new(443.7350, 2.0, 2) {ActualMass = 443.7351},
+                new(450.8925, 2.0, 3) {ActualMass = 450.8925},
+                new(454.7563, 2.0, 2) {ActualMass = 454.7563},
+                new(457.2725, 2.0, 4) {ActualMass = 457.2725},
+                new(474.7589, 2.0, 2) {ActualMass = 474.7588},
+                new(534.3016, 2.0, 3) {ActualMass = 534.3016},
+                new(642.3702, 2.0, 2) {ActualMass = 642.3702},
+                new(720.3926, 2.0, 1) {ActualMass = 720.3926},
+                new(800.9453, 2.0, 2) {ActualMass = 800.9453},
+                new(857.4833, 2.0, 1) {ActualMass = 857.4835},
+                new(880.3828, 2.0, 1) {ActualMass = 880.3826},
+                new(989.4995, 2.0, 1) {ActualMass = 989.4995},
+                new(1108.5516, 2.0, 1) {ActualMass = 1108.5516},
+                new(447.7539, 2.0, -1),
+                new(449.2640, 2.0, -1)
             };
 
             var peakList = InterferenceCalculator.ConvertToPeaks(ref peakData);

@@ -152,7 +152,7 @@ is deleted after the information is successfully added to the SQLite database.
 
 Written by Josh Aldrich for the Department of Energy (PNNL, Richland, WA) \
 E-mail: proteomics@pnnl.gov
-Website: https://omics.pnl.gov/ or https://panomics.pnnl.gov/
+Website: https://github.com/PNNL-Comp-Mass-Spec/ or https://panomics.pnnl.gov/ or https://www.pnnl.gov/integrative-omics
 
 ## License
 

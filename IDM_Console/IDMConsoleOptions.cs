@@ -9,7 +9,7 @@ namespace IDM_Console
     {
         // Ignore Spelling: Guesstimation, Tol
 
-        private const string PROGRAM_DATE = "November 20, 2020";
+        private const string PROGRAM_DATE = "April 22, 2022";
 
         /// <summary>
         /// Constructor

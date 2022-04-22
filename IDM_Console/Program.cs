@@ -32,10 +32,10 @@ namespace IDM_Console
                                   "(weighted by intensity). An interference score of 1 means that " +
                                   "all of the peaks in the isolation window were from the precursor ion.",
 
-                    ContactInfo = "Program written by Josh Aldrich for the Department of Energy (PNNL, Richland, WA) in 2012" +
+                    ContactInfo = "Program written by Josh Aldrich for the Department of Energy (PNNL, Richland, WA)" +
                                   Environment.NewLine + Environment.NewLine +
                                   "E-mail: proteomics@pnnl.gov" + Environment.NewLine +
-                                  "Website: https://panomics.pnnl.gov/ or https://omics.pnl.gov or https://github.com/PNNL-Comp-Mass-Spec",
+                                  "Website: https://github.com/PNNL-Comp-Mass-Spec/ or https://panomics.pnnl.gov/ or https://www.pnnl.gov/integrative-omics",
 
                     UsageExamples = {
                         exeName + " Results.db3",

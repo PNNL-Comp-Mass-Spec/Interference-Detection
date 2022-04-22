@@ -7,7 +7,7 @@ namespace IDM_Console
 {
     internal class IDMConsoleOptions
     {
-        // Ignore Spelling: Tol
+        // Ignore Spelling: Guesstimation, Tol
 
         private const string PROGRAM_DATE = "November 20, 2020";
 

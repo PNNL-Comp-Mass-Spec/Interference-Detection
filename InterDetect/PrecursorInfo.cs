@@ -5,6 +5,8 @@
     /// </summary>
     public class PrecursorInfo
     {
+        // Ignore Spelling: workflow
+
         public double IsolationMass { get; }
 
         public double IsolationWidth { get; }

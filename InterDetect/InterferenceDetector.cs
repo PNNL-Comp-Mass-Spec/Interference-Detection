@@ -49,7 +49,7 @@ namespace InterDetect
     /// </summary>
     public class InterferenceDetector : EventNotifier
     {
-        // Ignore Spelling: Isos, sqlite, prec, iso, pre
+        // Ignore Spelling: centroided, decon, iso, Isos, Mage, pre, prec, sqlite
 
         public const string DEFAULT_RESULT_DATABASE_NAME = "Results.db3";
 

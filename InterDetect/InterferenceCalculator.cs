@@ -10,7 +10,7 @@ namespace InterDetect
     /// </summary>
     public class InterferenceCalculator : EventNotifier
     {
-        // Ignore Spelling: isowidth
+        // Ignore Spelling: centroided, centroider, isowidth, workflow
 
         private const double C12_C13_MASS_DIFFERENCE = 1.0033548378;
         private const int NumIsotopesToCheckChargeGuess = 2;

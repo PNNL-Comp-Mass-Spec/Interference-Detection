@@ -773,29 +773,29 @@ namespace InterDetect
         public void ExportInterferenceScores(IEnumerable<PrecursorIntense> precursorInfo, string datasetID, string filepath)
         {
             var fileExists = File.Exists(filepath);
-            using (var writer = new StreamWriter(filepath, fileExists))
-            {
-                if (!fileExists)
-                {
-                    // Add the header line
-                    writer.WriteLine("Dataset_ID\tScanNumber\tPrecursorScan\t" +
-                                     "ParentMZ\tChargeState\t" +
-                                     "IsoWidth\tInterference\t" +
-                                     "PreIntensity\tIonCollectionTime");
-                }
 
-                foreach (var info in precursorInfo)
-                {
-                    writer.WriteLine(datasetID + "\t" +
-                                     info.ScanNumber + "\t" +
-                                     info.PrecursorScanNumber + "\t" +
-                                     NumToString(info.IsolationMass, 5) + "\t" +
-                                     info.ChargeState + "\t" +
-                                     NumToString(info.IsolationWidth, 3) + "\t" +
-                                     NumToString(info.Interference, 4) + "\t" +
-                                     NumToString(info.PrecursorIntensity, 2) + "\t" +
-                                     NumToString(info.IonCollectionTime, 2));
-                }
+            using var writer = new StreamWriter(filepath, fileExists);
+
+            if (!fileExists)
+            {
+                // Add the header line
+                writer.WriteLine("Dataset_ID\tScanNumber\tPrecursorScan\t" +
+                                 "ParentMZ\tChargeState\t" +
+                                 "IsoWidth\tInterference\t" +
+                                 "PreIntensity\tIonCollectionTime");
+            }
+
+            foreach (var info in precursorInfo)
+            {
+                writer.WriteLine(datasetID + "\t" +
+                                 info.ScanNumber + "\t" +
+                                 info.PrecursorScanNumber + "\t" +
+                                 NumToString(info.IsolationMass, 5) + "\t" +
+                                 info.ChargeState + "\t" +
+                                 NumToString(info.IsolationWidth, 3) + "\t" +
+                                 NumToString(info.Interference, 4) + "\t" +
+                                 NumToString(info.PrecursorIntensity, 2) + "\t" +
+                                 NumToString(info.IonCollectionTime, 2));
             }
         }
 

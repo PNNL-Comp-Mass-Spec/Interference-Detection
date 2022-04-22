@@ -201,89 +201,89 @@ namespace InterDetect
 
                 var isosData = new List<IsosData>();
 
-                using (var reader = new StreamReader(new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)))
+                using var reader = new StreamReader(new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
+
+                if (reader.EndOfStream)
                 {
-                    if (reader.EndOfStream)
+                    var message = "Data file is empty: " + fileName;
+                    OnErrorEvent(message);
+                    if (ThrowEvents)
+                        throw new Exception(message);
+                    return isosData;
+                }
+
+                var abundanceColIndex = -1;
+                var mzColIndex = -1;
+                var scanColIndex = -1;
+                var chargeColIndex = -1;
+
+                var headerLine = reader.ReadLine();
+
+                if (string.IsNullOrWhiteSpace(headerLine))
+                {
+                    // it's empty, that's an error
+                    var message = "Data file is empty: " + fileName;
+                    OnErrorEvent(message);
+                    if (ThrowEvents)
+                        throw new Exception(message);
+                    return isosData;
+                }
+
+                var headerCols = headerLine.Split(splitChars);
+
+                for (var i = 0; i < headerCols.Length; i++)
+                {
+                    switch (headerCols[i].ToLower())
                     {
-                        var message = "Data file is empty: " + fileName;
-                        OnErrorEvent(message);
-                        if (ThrowEvents)
-                            throw new Exception(message);
-                        return isosData;
-                    }
-
-                    var abundanceColIndex = -1;
-                    var mzColIndex = -1;
-                    var scanColIndex = -1;
-                    var chargeColIndex = -1;
-
-                    var headerLine = reader.ReadLine();
-
-                    if (string.IsNullOrWhiteSpace(headerLine))
-                    {
-                        // it's empty, that's an error
-                        var message = "Data file is empty: " + fileName;
-                        OnErrorEvent(message);
-                        if (ThrowEvents)
-                            throw new Exception(message);
-                        return isosData;
-                    }
-
-                    var headerCols = headerLine.Split(splitChars);
-
-                    for (var i = 0; i < headerCols.Length; i++)
-                    {
-                        switch (headerCols[i].ToLower())
-                        {
-                            case "abundance":
-                                abundanceColIndex = i;
-                                break;
-                            case "mz":
-                                mzColIndex = i;
-                                break;
-                            case "scan_num":
-                                scanColIndex = i;
-                                break;
-                            case "charge":
-                                chargeColIndex = i;
-                                break;
-                        }
-                    }
-
-                    var columnError = "";
-
-                    if (abundanceColIndex < 0) columnError = "Isos files does not have column: abundance";
-                    else if (mzColIndex < 0) columnError = "Isos files does not have column: mz";
-                    else if (scanColIndex < 0) columnError = "Isos files does not have column: scan_num";
-                    else if (chargeColIndex < 0) columnError = "Isos files does not have column: charge";
-
-                    if (!string.IsNullOrEmpty(columnError))
-                    {
-                        OnErrorEvent(columnError);
-                        if (ThrowEvents)
-                            throw new Exception(columnError);
-                        return isosData;
-                    }
-
-                    // fill the rest of the table
-                    while (!reader.EndOfStream)
-                    {
-                        var line = reader.ReadLine();
-                        if (string.IsNullOrEmpty(line))
-                            continue;
-
-                        var dataValues = line.Split(splitChars);
-
-                        var abundance = GetValueDbl(dataValues, abundanceColIndex, 0);
-                        var mz = GetValueDbl(dataValues, mzColIndex, 0);
-                        var scan = GetValueInt(dataValues, scanColIndex, 0);
-                        var charge = GetValueInt(dataValues, chargeColIndex, 0);
-
-                        var isosEntry = new IsosData(scan, mz, abundance, charge);
-
-                        isosData.Add(isosEntry);
+                        case "abundance":
+                            abundanceColIndex = i;
+                            break;
+                        case "mz":
+                            mzColIndex = i;
+                            break;
+                        case "scan_num":
+                            scanColIndex = i;
+                            break;
+                        case "charge":
+                            chargeColIndex = i;
+                            break;
                     }
                 }
+
+                var columnError = "";
+
+                if (abundanceColIndex < 0) columnError = "Isos files does not have column: abundance";
+                else if (mzColIndex < 0) columnError = "Isos files does not have column: mz";
+                else if (scanColIndex < 0) columnError = "Isos files does not have column: scan_num";
+                else if (chargeColIndex < 0) columnError = "Isos files does not have column: charge";
+
+                if (!string.IsNullOrEmpty(columnError))
+                {
+                    OnErrorEvent(columnError);
+                    if (ThrowEvents)
+                        throw new Exception(columnError);
+                    return isosData;
+                }
+
+                // fill the rest of the table
+                while (!reader.EndOfStream)
+                {
+                    var line = reader.ReadLine();
+                    if (string.IsNullOrEmpty(line))
+                        continue;
+
+                    var dataValues = line.Split(splitChars);
+
+                    var abundance = GetValueDbl(dataValues, abundanceColIndex, 0);
+                    var mz = GetValueDbl(dataValues, mzColIndex, 0);
+                    var scan = GetValueInt(dataValues, scanColIndex, 0);
+                    var charge = GetValueInt(dataValues, chargeColIndex, 0);
+
+                    var isosEntry = new IsosData(scan, mz, abundance, charge);
+
+                    isosData.Add(isosEntry);
+                }
+
                 return isosData;
             }
             catch (Exception ex)

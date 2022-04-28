@@ -14,4 +14,4 @@ xcopy Debug\InterDetect.pdb "F:\Documents\Projects\DataMining\MASIC\bin\Console\
 xcopy Debug\InterDetect.pdb "F:\Documents\Projects\DataMining\MASIC\Lib\" /D /Y
 xcopy Debug\InterDetect.pdb "F:\Documents\Projects\DataMining\MASIC\MASICTest\bin\Debug\" /D /Y
 
-pause
+if not "%1"=="NoPause" pause

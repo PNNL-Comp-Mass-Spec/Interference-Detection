@@ -45,12 +45,6 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>DLLLibrary\Mage.dll</HintPath>
     </Reference>
-    <Reference Include="MyEMSLReader">
-      <HintPath>DLLLibrary\MyEMSLReader.dll</HintPath>
-    </Reference>
-    <Reference Include="Pacifica.Core">
-      <HintPath>DLLLibrary\Pacifica.Core.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data.DataSetExtensions" />
